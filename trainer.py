@@ -9,47 +9,58 @@ class Trainer:
     Parameters:
         model (nn.Module): PyTorch model with encoder and decoder methods.
         dataset (object): Dataset providing 'data' Tensor of shape (N, ...) and 'cluster_sizes' list.
-        learning_rate (float): Learning rate for the optimizer. Default: 1e-3.
-        num_epochs (int): Number of training epochs. Default: 200.
-        print_every (int): Interval (in epochs) at which to print training loss. Default: 20.
-        batch_size (int): Number of samples per mini-batch. Default: 16.
+        learning_rate (float): Learning rate for the optimizer.
+        num_epochs (int): Number of training epochs. Use -1 to enable early stopping.
+        patience (int): Number of epochs with no improvement after which training will be stopped when num_epochs=-1.
+        min_delta (float): Minimum change in the monitored loss to qualify as an improvement.
+        print_every (int): Interval (in epochs) at which to print training loss.
+        batch_size (int): Number of samples per mini-batch.
     """
-    def __init__(self, model, dataset, learning_rate=1e-3, num_epochs=200, print_every=20, batch_size=16):
+    def __init__(self, model, dataset, learning_rate=1e-3,
+                 num_epochs=200, patience=20, min_delta=1e-5,
+                 print_every=20, batch_size=16):
         # Store dataset and model
         self.model = model
         self.dataset = dataset
         # Training hyperparameters
         self.learning_rate = learning_rate
         self.num_epochs = num_epochs
+        self.patience = patience
+        self.min_delta = min_delta
         self.print_every = print_every
         self.batch_size = batch_size
 
         # Define loss function and optimizer
         self.criterion = nn.MSELoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
-    
+
     def train(self):
         """
-        Run the training loop over the specified number of epochs.
-
-        For each epoch:
-          - Shuffle data indices.
-          - Loop over mini-batches.
-          - Zero gradients, perform forward pass, compute loss, backpropagate, and update weights.
-          - Accumulate batch losses to report average loss periodically.
+        Run the training loop over epochs or until early stopping.
 
         Returns:
             self: Enables method chaining after training.
         """
         # Total number of samples
         N = self.dataset.data.size(0)
-        
-        for epoch in range(self.num_epochs):
-            # Generate a random permutation of indices for shuffling
+        # Best loss for early stopping
+        best_loss = float('inf')
+        # Counter for epochs without improvement
+        epochs_no_improve = 0
+        epoch = 0
+
+        # Determine if using fixed epochs or early stopping
+        use_early_stopping = (self.num_epochs < 0)
+        max_epochs = float('inf') if use_early_stopping else self.num_epochs
+
+        # Training loop
+        while epoch < max_epochs:
+            epoch += 1
+            # Shuffle data indices for this epoch
             perm = torch.randperm(N)
             epoch_loss = 0.0
             num_batches = 0
-            
+
             # Mini-batch training
             for start in range(0, N, self.batch_size):
                 # Select batch indices and data
@@ -70,11 +81,28 @@ class Trainer:
                 # Accumulate loss
                 epoch_loss += loss.item()
                 num_batches += 1
-            
+
+            # Compute average loss for this epoch
+            avg_loss = epoch_loss / num_batches
+
             # Print average loss at specified intervals
-            if (epoch + 1) % self.print_every == 0:
-                avg_loss = epoch_loss / num_batches
-                print(f"Epoch [{epoch+1}/{self.num_epochs}], Loss: {avg_loss:.6f}")
+            if epoch % self.print_every == 0:
+                total_epochs = '∞' if use_early_stopping else self.num_epochs
+                print(f"Epoch [{epoch}/{total_epochs}], Loss: {avg_loss:.6f}")
+
+            # Early stopping check
+            if use_early_stopping:
+                # Check if loss has improved by at least min_delta
+                if avg_loss + self.min_delta < best_loss:
+                    best_loss = avg_loss
+                    epochs_no_improve = 0
+                else:
+                    epochs_no_improve += 1
+
+                # Trigger early stopping if no improvement for patience epochs
+                if epochs_no_improve >= self.patience:
+                    print(f"Early stopping triggered at epoch {epoch} (no improvement for {self.patience} epochs).")
+                    break
 
         return self
 
@@ -110,7 +138,7 @@ class Trainer:
                     d = self.model.decoder(d)
                 else:
                     raise ValueError(f"Unknown type={type!r}, expected 'input', 'latent' or 'output'")
-        
+
         # Segment output according to cluster sizes
         segments = []
         offset = 0

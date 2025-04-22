@@ -8,7 +8,9 @@ trainer = Trainer(
     model=Ae3Dto2D(),
     dataset=Dataset3Dbut3D(),
     learning_rate=1e-3,
-    num_epochs=200,
+    num_epochs=-1,
+    patience=20,
+    min_delta=1e-5,
     print_every=20,
     batch_size=16,
     ).train()

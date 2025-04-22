@@ -6,9 +6,11 @@ from dataset import Dataset2Dbut2D, Dataset2Dbut1D
 
 trainer = Trainer(
     model=Ae2Dto1D(),
-    dataset=Dataset2Dbut1D(),
+    dataset=Dataset2Dbut2D(),
     learning_rate=1e-3,
-    num_epochs=200,
+    num_epochs=-1,
+    patience=20,
+    min_delta=1e-5,
     print_every=20,
     batch_size=16,
     ).train()
