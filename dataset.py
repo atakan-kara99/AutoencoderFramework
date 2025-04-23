@@ -35,10 +35,6 @@ class Dataset(ABC):
 
 ''' -------------------------------------- 3D Data -------------------------------------- '''
 class Dataset3Dbut3D(Dataset):
-    """
-    3D dataset with four clusters arranged in 3D corners plus a small central cluster.
-    Each cluster is a Gaussian around specified mean coordinates.
-    """
     def __init__(self):
         super().__init__([
             torch.randn( 5, 3) * 0.75 + torch.tensor([ 0.00,  0.00,  0.00]),
@@ -49,9 +45,6 @@ class Dataset3Dbut3D(Dataset):
         ])
 
 class Dataset3Dbut2D(Dataset):
-    """
-    3D input data with points lying roughly on a 2D plane (z=0), forming four clusters.
-    """
     def __init__(self):
         super().__init__([
             torch.randn( 5, 3) * 0.75 + torch.tensor([ 0.00,  0.00,  0.00]),
@@ -61,10 +54,6 @@ class Dataset3Dbut2D(Dataset):
         ])
 
 class Dataset3Dbut1D(Dataset):
-    """
-    3D input data compressed along two axes: clusters aligned along a 1D line.
-    Two main clusters plus a small central cluster.
-    """
     def __init__(self):
         super().__init__([
             torch.randn( 5, 3) * 0.75 + torch.tensor([ 0.00,  0.00,  0.00]),
@@ -75,10 +64,6 @@ class Dataset3Dbut1D(Dataset):
 
 ''' -------------------------------------- 2D Data -------------------------------------- '''
 class Dataset2Dbut2D(Dataset):
-    """
-    2D dataset with three peripheral clusters arranged around the origin
-    plus one small central cluster.
-    """
     def __init__(self):
         super().__init__([
             torch.randn( 5, 2) * 0.75 + torch.tensor([ 0.00,  0.00]),
@@ -88,10 +73,6 @@ class Dataset2Dbut2D(Dataset):
         ])
 
 class Dataset2Dbut1D(Dataset):
-    """
-    2D input data compressed to a 1D latent structure: two main clusters along one axis
-    plus a small central cluster.
-    """
     def __init__(self):
         super().__init__([
             torch.randn( 5, 2) * 0.75 + torch.tensor([ 0.00,  0.00]),

@@ -31,13 +31,6 @@ class Autoencoder(nn.Module, ABC):
 
 ''' ------------------------ Autoencoders for 3D Data ------------------------ '''
 class Ae3Dto2D(Autoencoder):
-    """
-    Autoencoder mapping 3D input points to 2D latent representations.
-
-    Architecture:
-        Encoder: 3 -> 6 -> ReLU -> 2
-        Decoder: 2 -> 6 -> ReLU -> 3
-    """
     def __init__(self):
         super().__init__()
         self.encoder = nn.Sequential(
@@ -52,24 +45,12 @@ class Ae3Dto2D(Autoencoder):
         )
 
 class Ae3Dto2Dlinear(Autoencoder):
-    """
-    Linear autoencoder mapping 3D inputs directly to 2D and back.
-
-    No non-linear activations; purely linear transformation.
-    """
     def __init__(self):
         super().__init__()
         self.encoder = nn.Linear(3, 2)
         self.decoder = nn.Linear(2, 3)
     
 class Ae3Dto1D(Autoencoder):
-    """
-    Autoencoder mapping 3D inputs to a 1D latent scalar.
-
-    Architecture:
-        Encoder: 3 -> 2 -> ReLU -> 1
-        Decoder: 1 -> 2 -> ReLU -> 3
-    """
     def __init__(self):
         super().__init__()
         self.encoder = nn.Sequential(
@@ -86,13 +67,6 @@ class Ae3Dto1D(Autoencoder):
 
 ''' ------------------------ Autoencoders for 2D Data ------------------------ '''
 class Ae2Dto1D(Autoencoder):
-    """
-    Autoencoder mapping 2D inputs down to a 1D latent representation.
-
-    Architecture:
-        Encoder: 2 -> 4 -> ReLU -> 1
-        Decoder: 1 -> 4 -> ReLU -> 2
-    """
     def __init__(self):
         super().__init__()
         self.encoder = nn.Sequential(
@@ -107,11 +81,6 @@ class Ae2Dto1D(Autoencoder):
         )
 
 class Ae2Dto1Dlinear(Autoencoder):
-    """
-    Linear autoencoder for 2D-to-1D compression and reconstruction.
-
-    No activations, purely linear layers.
-    """
     def __init__(self):
         super().__init__()
         self.encoder = nn.Linear(2, 1)
