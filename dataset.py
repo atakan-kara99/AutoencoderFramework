@@ -1,5 +1,6 @@
 import torch
 from abc import ABC
+from visualizer import Visualizer
 
 class Dataset(ABC):
     """
@@ -40,11 +41,11 @@ class Dataset3Dbut3D(Dataset):
     """
     def __init__(self):
         super().__init__([
+            torch.randn( 5, 3) * 0.75 + torch.tensor([ 0.00,  0.00,  0.00]),
             torch.randn(50, 3) * 0.5  + torch.tensor([ 2.00,  2.00,  2.00]),
             torch.randn(50, 3) * 0.5  + torch.tensor([ 2.00, -2.00, -2.00]),
             torch.randn(50, 3) * 0.5  + torch.tensor([-2.00,  2.00, -2.00]),
             torch.randn(50, 3) * 0.5  + torch.tensor([-2.00, -2.00,  2.00]),
-            torch.randn( 5, 3) * 0.75 + torch.tensor([ 0.00,  0.00,  0.00]),
         ])
 
 class Dataset3Dbut2D(Dataset):
@@ -53,10 +54,10 @@ class Dataset3Dbut2D(Dataset):
     """
     def __init__(self):
         super().__init__([
+            torch.randn( 5, 3) * 0.75 + torch.tensor([ 0.00,  0.00,  0.00]),
             torch.randn(50, 3) * 0.5  + torch.tensor([ 0.00,  3.50,  0.00]),
             torch.randn(50, 3) * 0.5  + torch.tensor([ 3.03, -1.75,  0.00]),
             torch.randn(50, 3) * 0.5  + torch.tensor([-3.03, -1.75,  0.00]),
-            torch.randn( 5, 3) * 0.75 + torch.tensor([ 0.00,  0.00,  0.00]),
         ])
 
 class Dataset3Dbut1D(Dataset):
@@ -66,9 +67,9 @@ class Dataset3Dbut1D(Dataset):
     """
     def __init__(self):
         super().__init__([
+            torch.randn( 5, 3) * 0.75 + torch.tensor([ 0.00,  0.00,  0.00]),
             torch.randn(50, 3) * 0.5  + torch.tensor([ 2.00,  2.00,  2.00]),
             torch.randn(50, 3) * 0.5  + torch.tensor([-2.00, -2.00, -2.00]),
-            torch.randn( 5, 3) * 0.75 + torch.tensor([ 0.00,  0.00,  0.00]),
         ])
 
 
@@ -80,10 +81,10 @@ class Dataset2Dbut2D(Dataset):
     """
     def __init__(self):
         super().__init__([
+            torch.randn( 5, 2) * 0.75 + torch.tensor([ 0.00,  0.00]),
             torch.randn(50, 2) * 0.5  + torch.tensor([ 0.00,  3.50]),
             torch.randn(50, 2) * 0.5  + torch.tensor([ 3.03, -1.75]),
             torch.randn(50, 2) * 0.5  + torch.tensor([-3.03, -1.75]),
-            torch.randn( 5, 2) * 0.75 + torch.tensor([ 0.00,  0.00]),
         ])
 
 class Dataset2Dbut1D(Dataset):
@@ -93,7 +94,20 @@ class Dataset2Dbut1D(Dataset):
     """
     def __init__(self):
         super().__init__([
+            torch.randn( 5, 2) * 0.75 + torch.tensor([ 0.00,  0.00]),
             torch.randn(50, 2) * 0.5  + torch.tensor([ 2.00,  2.00]),
             torch.randn(50, 2) * 0.5  + torch.tensor([-2.00, -2.00]),
-            torch.randn( 5, 2) * 0.75 + torch.tensor([ 0.00,  0.00]),
         ])
+
+if __name__ == "__main__":
+    # Dataset Showcase
+    Visualizer(
+    layout=(2, 3), 
+    plot_specs=[
+        {"type": "2d", "clusters": Dataset2Dbut1D().clusters, "kwargs": {"title": "Dataset2Dbut1D"}},
+        {"type": "2d", "clusters": Dataset2Dbut2D().clusters, "kwargs": {"title": "Dataset2Dbut2D"}},
+        {"type": "3d", "clusters": Dataset3Dbut1D().clusters, "kwargs": {"title": "Dataset3Dbut1D"}},
+        {"type": "3d", "clusters": Dataset3Dbut2D().clusters, "kwargs": {"title": "Dataset3Dbut2D"}},
+        {"type": "3d", "clusters": Dataset3Dbut3D().clusters, "kwargs": {"title": "Dataset3Dbut3D"}},
+        ]
+    ).show()
