@@ -31,7 +31,8 @@ class Trainer:
         self.batch_size = batch_size
 
         # Define loss function and optimizer
-        self.criterion = nn.MSELoss()
+        self.mse_loss = nn.MSELoss()
+        self.cosine_sim = nn.CosineSimilarity(dim=1, eps=1e-8)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
     def train(self):
@@ -71,8 +72,10 @@ class Trainer:
                 self.optimizer.zero_grad()
                 # Forward pass through model
                 output = self.model(batch)
-                # Compute reconstruction loss
-                loss = self.criterion(output, batch)
+                # Compute losses
+                mse_loss = self.mse_loss(output, batch)
+                cos_loss = (1.0 - self.cosine_sim(output, batch)).mean()
+                loss = mse_loss + cos_loss
                 # Backpropagation
                 loss.backward()
                 # Update model parameters
@@ -88,7 +91,10 @@ class Trainer:
             # Print average loss at specified intervals
             if epoch % self.print_every == 0:
                 total_epochs = '∞' if use_early_stopping else self.num_epochs
-                print(f"Epoch [{epoch}/{total_epochs}], Loss: {avg_loss:.6f}")
+                print(f"Epoch [{epoch}/{total_epochs}]  "
+                      f"Total Loss: {avg_loss:.6f}  "
+                      f"MSE Loss: {mse_loss:.6f}  "
+                      f"Cosine Loss: {cos_loss:.6f}")
 
             # Early stopping check
             if use_early_stopping:
