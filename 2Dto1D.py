@@ -1,18 +1,12 @@
 from trainer import Trainer
 from visualizer import Visualizer
 from model import Ae2Dto1D, Ae2Dto1Dlinear
-from dataset import Dataset2Dbut2D, Dataset2Dbut1D
+from dataset import Ds2Dbut2Dsingle, Ds2Dbut1Dsingle, Ds2Dbut2Dmulti
 
 
 trainer = Trainer(
     model=Ae2Dto1D(),
-    dataset=Dataset2Dbut2D(),
-    learning_rate=1e-3,
-    num_epochs=-1,
-    patience=20,
-    min_delta=1e-5,
-    print_every=20,
-    batch_size=16,
+    dataset=Ds2Dbut2Dmulti(),
     ).train()
 
 Visualizer(

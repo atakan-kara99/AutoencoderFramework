@@ -1,18 +1,12 @@
 from trainer import Trainer
 from visualizer import Visualizer
 from model import Ae3Dto1D
-from dataset import Dataset3Dbut3D, Dataset3Dbut2D, Dataset3Dbut1D
+from dataset import Ds3Dbut3Dsingle, Ds3Dbut2Dsingle, Ds3Dbut1Dsingle, Ds3Dbut2Dmulti
 
 
 trainer = Trainer(
     model=Ae3Dto1D(),
-    dataset=Dataset3Dbut3D(),
-    learning_rate=1e-3,
-    num_epochs=-1,
-    patience=20,
-    min_delta=1e-5,
-    print_every=20,
-    batch_size=16,
+    dataset=Ds3Dbut2Dmulti(),
     ).train()
 
 Visualizer(
