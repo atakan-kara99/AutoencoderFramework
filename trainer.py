@@ -17,8 +17,8 @@ class Trainer:
         batch_size (int): Number of samples per mini-batch.
     """
     def __init__(self, model, dataset, learning_rate=1e-3,
-                 num_epochs=200, patience=20, min_delta=1e-5,
-                 print_every=20, batch_size=16):
+                 num_epochs=-1, patience=40, min_delta=1e-5,
+                 print_every=20, batch_size=32):
         # Store dataset and model
         self.model = model
         self.dataset = dataset
@@ -60,6 +60,8 @@ class Trainer:
             # Shuffle data indices for this epoch
             perm = torch.randperm(N)
             epoch_loss = 0.0
+            epoch_loss_mse = 0.0
+            epoch_loss_cos = 0.0
             num_batches = 0
 
             # Mini-batch training
@@ -74,8 +76,8 @@ class Trainer:
                 output = self.model(batch)
                 # Compute losses
                 mse_loss = self.mse_loss(output, batch)
-                cos_loss = (1.0 - self.cosine_sim(output, batch)).mean()
-                loss = mse_loss + cos_loss
+                cos_loss = (1.0 - self.cosine_sim(output, batch)).mean() * 10
+                loss = mse_loss #+ cos_loss
                 # Backpropagation
                 loss.backward()
                 # Update model parameters
@@ -83,17 +85,21 @@ class Trainer:
 
                 # Accumulate loss
                 epoch_loss += loss.item()
+                epoch_loss_mse += mse_loss.item()
+                epoch_loss_cos += cos_loss.item()
                 num_batches += 1
 
             # Compute average loss for this epoch
             avg_loss = epoch_loss / num_batches
+            mse_loss = epoch_loss_mse / num_batches
+            cos_loss = epoch_loss_cos / num_batches
 
             # Print average loss at specified intervals
             if epoch % self.print_every == 0:
                 total_epochs = '∞' if use_early_stopping else self.num_epochs
-                print(f"Epoch [{epoch}/{total_epochs}]  "
-                      f"Total Loss: {avg_loss:.6f}  "
-                      f"MSE Loss: {mse_loss:.6f}  "
+                print(f"Epoch [{epoch}/{total_epochs}]   "
+                      f"Total Loss: {avg_loss:.6f}   "
+                      f"MSE Loss: {mse_loss:.6f}   "
                       f"Cosine Loss: {cos_loss:.6f}")
 
             # Early stopping check
