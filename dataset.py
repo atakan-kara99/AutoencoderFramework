@@ -34,7 +34,19 @@ class Dataset(ABC):
 
 
 ''' -------------------------------------- 3D Data -------------------------------------- '''
-class Dataset3Dbut3D(Dataset):
+class Ds3Dbut3Dmulti(Dataset):
+    def __init__(self):
+        super().__init__([
+            torch.randn( 3, 3) * 0.5 + torch.tensor([ 2.00,  0.00,  0.00]),
+            torch.randn( 3, 3) * 0.5 + torch.tensor([ 0.00,  2.00,  0.00]),
+            torch.randn( 3, 3) * 0.5 + torch.tensor([ 0.00, -2.00,  0.00]),
+            #torch.randn( 3, 3) * 0.5 + torch.tensor([-2.00,  0.00,  0.00]),
+            torch.randn(50, 3) * 0.5 + torch.tensor([ 2.00,  2.00,  2.00]),
+            torch.randn(50, 3) * 0.5 + torch.tensor([ 2.00, -2.00, -2.00]),
+            torch.randn(50, 3) * 0.5 + torch.tensor([-2.00,  2.00, -2.00]),
+            torch.randn(50, 3) * 0.5 + torch.tensor([-2.00, -2.00,  2.00]),
+        ])
+class Ds3Dbut3Dsingle(Dataset):
     def __init__(self):
         super().__init__([
             torch.randn( 5, 3) * 0.75 + torch.tensor([ 0.00,  0.00,  0.00]),
@@ -43,8 +55,17 @@ class Dataset3Dbut3D(Dataset):
             torch.randn(50, 3) * 0.5  + torch.tensor([-2.00,  2.00, -2.00]),
             torch.randn(50, 3) * 0.5  + torch.tensor([-2.00, -2.00,  2.00]),
         ])
-
-class Dataset3Dbut2D(Dataset):
+class Ds3Dbut2Dmulti(Dataset):
+    def __init__(self):
+        super().__init__([
+            torch.randn( 3, 3) * 0.5 + torch.tensor([ 1.52,  0.88,  0.00]),
+            torch.randn( 3, 3) * 0.5 + torch.tensor([-1.52,  0.88,  0.00]),
+            #torch.randn( 3, 3) * 0.5 + torch.tensor([ 0.00, -1.75,  0.00]),
+            torch.randn(50, 3) * 0.5 + torch.tensor([ 0.00,  3.50,  0.00]),
+            torch.randn(50, 3) * 0.5 + torch.tensor([ 3.03, -1.75,  0.00]),
+            torch.randn(50, 3) * 0.5 + torch.tensor([-3.03, -1.75,  0.00]),
+        ])
+class Ds3Dbut2Dsingle(Dataset):
     def __init__(self):
         super().__init__([
             torch.randn( 5, 3) * 0.75 + torch.tensor([ 0.00,  0.00,  0.00]),
@@ -52,8 +73,7 @@ class Dataset3Dbut2D(Dataset):
             torch.randn(50, 3) * 0.5  + torch.tensor([ 3.03, -1.75,  0.00]),
             torch.randn(50, 3) * 0.5  + torch.tensor([-3.03, -1.75,  0.00]),
         ])
-
-class Dataset3Dbut1D(Dataset):
+class Ds3Dbut1Dsingle(Dataset):
     def __init__(self):
         super().__init__([
             torch.randn( 5, 3) * 0.75 + torch.tensor([ 0.00,  0.00,  0.00]),
@@ -63,7 +83,17 @@ class Dataset3Dbut1D(Dataset):
 
 
 ''' -------------------------------------- 2D Data -------------------------------------- '''
-class Dataset2Dbut2D(Dataset):
+class Ds2Dbut2Dmulti(Dataset):
+    def __init__(self):
+        super().__init__([
+            torch.randn( 3, 2) * 0.5 + torch.tensor([ 1.52,  0.88]),
+            torch.randn( 3, 2) * 0.5 + torch.tensor([-1.52,  0.88]),
+            #torch.randn( 3, 2) * 0.5 + torch.tensor([ 0.00, -1.75]),
+            torch.randn(50, 2) * 0.5 + torch.tensor([ 0.00,  3.50]),
+            torch.randn(50, 2) * 0.5 + torch.tensor([ 3.03, -1.75]),
+            torch.randn(50, 2) * 0.5 + torch.tensor([-3.03, -1.75]),
+        ])
+class Ds2Dbut2Dsingle(Dataset):
     def __init__(self):
         super().__init__([
             torch.randn( 5, 2) * 0.75 + torch.tensor([ 0.00,  0.00]),
@@ -71,8 +101,7 @@ class Dataset2Dbut2D(Dataset):
             torch.randn(50, 2) * 0.5  + torch.tensor([ 3.03, -1.75]),
             torch.randn(50, 2) * 0.5  + torch.tensor([-3.03, -1.75]),
         ])
-
-class Dataset2Dbut1D(Dataset):
+class Ds2Dbut1Dsingle(Dataset):
     def __init__(self):
         super().__init__([
             torch.randn( 5, 2) * 0.75 + torch.tensor([ 0.00,  0.00]),
@@ -83,12 +112,15 @@ class Dataset2Dbut1D(Dataset):
 if __name__ == "__main__":
     # Dataset Showcase
     Visualizer(
-    layout=(2, 3), 
+    layout=(2, 4), 
     plot_specs=[
-        {"type": "2d", "clusters": Dataset2Dbut1D().clusters, "kwargs": {"title": "Dataset2Dbut1D"}},
-        {"type": "2d", "clusters": Dataset2Dbut2D().clusters, "kwargs": {"title": "Dataset2Dbut2D"}},
-        {"type": "3d", "clusters": Dataset3Dbut1D().clusters, "kwargs": {"title": "Dataset3Dbut1D"}},
-        {"type": "3d", "clusters": Dataset3Dbut2D().clusters, "kwargs": {"title": "Dataset3Dbut2D"}},
-        {"type": "3d", "clusters": Dataset3Dbut3D().clusters, "kwargs": {"title": "Dataset3Dbut3D"}},
+        {"type": "2d", "clusters": Ds2Dbut1Dsingle().clusters, "kwargs": {"title": "Ds2Dbut1Dsingle"}},
+        {"type": "2d", "clusters": Ds2Dbut2Dsingle().clusters, "kwargs": {"title": "Ds2Dbut2Dsingle"}},
+        {"type": "2d", "clusters": Ds2Dbut2Dmulti().clusters,  "kwargs": {"title": "Ds2Dbut2Dmulti"}},
+        {"type": "3d", "clusters": Ds3Dbut1Dsingle().clusters, "kwargs": {"title": "Ds3Dbut1Dsingle"}},
+        {"type": "3d", "clusters": Ds3Dbut2Dsingle().clusters, "kwargs": {"title": "Ds3Dbut2Dsingle"}},
+        {"type": "3d", "clusters": Ds3Dbut2Dmulti().clusters,  "kwargs": {"title": "Ds3Dbut2Dmulti"}},
+        {"type": "3d", "clusters": Ds3Dbut3Dsingle().clusters, "kwargs": {"title": "Ds3Dbut3Dsingle"}},
+        {"type": "3d", "clusters": Ds3Dbut3Dmulti().clusters,  "kwargs": {"title": "Ds3Dbut3Dmulti"}},
         ]
     ).show()
