@@ -1,3 +1,4 @@
+import loss
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -33,6 +34,7 @@ class Trainer:
         # Define loss function and optimizer
         self.mse_loss = nn.MSELoss()
         self.cosine_sim = nn.CosineSimilarity(dim=1, eps=1e-8)
+        self.softTrust_loss = loss.SoftTrustworthinessLoss(k=10, tau_r=0.5, tau_s=0.5)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
     def train(self):
@@ -62,6 +64,7 @@ class Trainer:
             epoch_loss = 0.0
             epoch_loss_mse = 0.0
             epoch_loss_cos = 0.0
+            epoch_loss_st  = 0.0
             num_batches = 0
 
             # Mini-batch training
@@ -77,7 +80,8 @@ class Trainer:
                 # Compute losses
                 mse_loss = self.mse_loss(output, batch)
                 cos_loss = (1.0 - self.cosine_sim(output, batch)).mean() * 10
-                loss = mse_loss #+ cos_loss
+                st_loss  = self.softTrust_loss(output, batch) / 10
+                loss = mse_loss# + st_loss #+ mse_loss #+ cos_loss
                 # Backpropagation
                 loss.backward()
                 # Update model parameters
@@ -87,12 +91,14 @@ class Trainer:
                 epoch_loss += loss.item()
                 epoch_loss_mse += mse_loss.item()
                 epoch_loss_cos += cos_loss.item()
+                epoch_loss_st  += st_loss.item()
                 num_batches += 1
 
             # Compute average loss for this epoch
             avg_loss = epoch_loss / num_batches
             mse_loss = epoch_loss_mse / num_batches
             cos_loss = epoch_loss_cos / num_batches
+            st_loss  = epoch_loss_st / num_batches
 
             # Print average loss at specified intervals
             if epoch % self.print_every == 0:
@@ -100,7 +106,8 @@ class Trainer:
                 print(f"Epoch [{epoch}/{total_epochs}]   "
                       f"Total Loss: {avg_loss:.6f}   "
                       f"MSE Loss: {mse_loss:.6f}   "
-                      f"Cosine Loss: {cos_loss:.6f}")
+                      f"Cosine Loss: {cos_loss:.6f}   "
+                      f"sTrust Loss: {st_loss:.6f}")
 
             # Early stopping check
             if use_early_stopping:
