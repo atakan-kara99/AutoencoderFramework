@@ -12,8 +12,8 @@ trainer = Trainer(
 Visualizer(
     layout=(1, 3), 
     plot_specs=[
-        {"type": "3d", "clusters": trainer.get("input"),  "kwargs": {"title": "Input Data"}},
-        {"type": "1d", "clusters": trainer.get("latent"), "kwargs": {"title": "Latent Representation"}},
-        {"type": "3d", "clusters": trainer.get("output"), "kwargs": {"title": "Reconstructed Data"}},
+        {"clusters": trainer.get("input"),  "kwargs": {"title": "Input Data"}},
+        {"clusters": trainer.get("latent"), "kwargs": {"title": "Latent Representation"}},
+        {"clusters": trainer.get("output"), "kwargs": {"title": "Reconstructed Data"}},
         ]
     ).show()
