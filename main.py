@@ -1,12 +1,25 @@
 from trainer import Trainer
 from visualizer import Visualizer
+
+# 2D to 1D
+from model import Ae2Dto1D, Ae2Dto1Dlinear
+from dataset import Ds2Dbut2Dsingle, Ds2Dbut1Dsingle, Ds2Dbut2Dmulti
+
+# 3D to 1D
+from model import Ae3Dto1D
+from dataset import Ds3Dbut3Dsingle, Ds3Dbut2Dsingle, Ds3Dbut1Dsingle, Ds3Dbut2Dmulti
+
+# 3D to 2D
 from model import Ae3Dto2D, Ae3Dto2Dlinear
 from dataset import Ds3Dbut3Dsingle, Ds3Dbut2Dsingle, Ds3Dbut1Dsingle, Ds3Dbut2Dmulti, Ds3Dbut3Dmulti
 
+# Moon
+from dataset import Ds2DMoons, Ds3DMoons
+
 
 trainer = Trainer(
-    model=Ae3Dto2D(),
-    dataset=Ds3Dbut3Dmulti(),
+    model=Ae2Dto1D(),
+    dataset=Ds2Dbut2Dmulti(),
     ).train()
 
 Visualizer(
