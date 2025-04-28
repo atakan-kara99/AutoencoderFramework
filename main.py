@@ -13,13 +13,16 @@ from dataset import Ds3Dbut3Dsingle, Ds3Dbut2Dsingle, Ds3Dbut1Dsingle, Ds3Dbut2D
 from model import Ae3Dto2D, Ae3Dto2Dlinear
 from dataset import Ds3Dbut3Dsingle, Ds3Dbut2Dsingle, Ds3Dbut1Dsingle, Ds3Dbut2Dmulti, Ds3Dbut3Dmulti
 
-# Moon
-from dataset import Ds2DMoons, Ds3DMoons
+# Moons
+from dataset import Ds2DMoons, Ds3DMoons, DsTrue3DMoons
+
+# Swiss Roll
+from dataset import Ds3DSwissRoll
 
 
 trainer = Trainer(
-    model=Ae2Dto1D(),
-    dataset=Ds2Dbut2Dmulti(),
+    model=Ae3Dto2D(),
+    dataset=Ds3DSwissRoll(),
     ).train()
 
 Visualizer(
