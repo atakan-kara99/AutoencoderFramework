@@ -315,7 +315,7 @@ if __name__ == "__main__":
     #     ]
     # ).show()
     Visualizer(
-    layout=(2, 3),
+    layout=(2, 2),
     plot_specs=[
         {"clusters": Ds2DMoons().clusters,     "kwargs": {"title": "Ds2DMoons"}},
         {"clusters": Ds3DMoons().clusters,     "kwargs": {"title": "Ds3DMoons"}},
