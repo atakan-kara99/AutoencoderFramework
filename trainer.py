@@ -81,7 +81,7 @@ class Trainer:
                 mse_loss = self.mse_loss(output, batch)
                 cos_loss = (1.0 - self.cosine_sim(output, batch)).mean() * 10
                 st_loss  = self.softTrust_loss(output, batch) / 10
-                loss = mse_loss# + st_loss #+ mse_loss #+ cos_loss
+                loss = mse_loss
                 # Backpropagation
                 loss.backward()
                 # Update model parameters
@@ -107,7 +107,8 @@ class Trainer:
                       f"Total Loss: {avg_loss:.6f}   "
                       f"MSE Loss: {mse_loss:.6f}   "
                       f"Cosine Loss: {cos_loss:.6f}   "
-                      f"sTrust Loss: {st_loss:.6f}")
+                      f"sTrust Loss: {st_loss:.6f}   "
+                      f"TotalTotal Loss: {mse_loss + cos_loss + st_loss:.6f}")
 
             # Early stopping check
             if use_early_stopping:
