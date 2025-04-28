@@ -35,6 +35,7 @@ class Trainer:
         self.mse_loss = nn.MSELoss()
         self.cosine_sim = nn.CosineSimilarity(dim=1, eps=1e-8)
         self.softTrust_loss = loss.SoftTrustworthinessLoss(k=10, tau_r=0.5, tau_s=0.5)
+        #self.LLE_loss = loss.LLELoss(k=5, reg=1e-3)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
     def train(self):
@@ -65,6 +66,7 @@ class Trainer:
             epoch_loss_mse = 0.0
             epoch_loss_cos = 0.0
             epoch_loss_st  = 0.0
+            #epoch_loss_lle = 0.0
             num_batches = 0
 
             # Mini-batch training
@@ -81,6 +83,7 @@ class Trainer:
                 mse_loss = self.mse_loss(output, batch)
                 cos_loss = (1.0 - self.cosine_sim(output, batch)).mean() * 10
                 st_loss  = self.softTrust_loss(output, batch) / 10
+                #lle_loss = self.LLE_loss(batch, output) * 10000
                 loss = mse_loss
                 # Backpropagation
                 loss.backward()
@@ -92,6 +95,7 @@ class Trainer:
                 epoch_loss_mse += mse_loss.item()
                 epoch_loss_cos += cos_loss.item()
                 epoch_loss_st  += st_loss.item()
+                #epoch_loss_lle += lle_loss.item()
                 num_batches += 1
 
             # Compute average loss for this epoch
@@ -99,6 +103,7 @@ class Trainer:
             mse_loss = epoch_loss_mse / num_batches
             cos_loss = epoch_loss_cos / num_batches
             st_loss  = epoch_loss_st / num_batches
+            #lle_loss = epoch_loss_lle / num_batches
 
             # Print average loss at specified intervals
             if epoch % self.print_every == 0:
@@ -108,6 +113,7 @@ class Trainer:
                       f"MSE Loss: {mse_loss:.6f}   "
                       f"Cosine Loss: {cos_loss:.6f}   "
                       f"sTrust Loss: {st_loss:.6f}   "
+                      #f"LLE Loss: {lle_loss:.6f}   "
                       f"TotalTotal Loss: {mse_loss + cos_loss + st_loss:.6f}")
 
             # Early stopping check

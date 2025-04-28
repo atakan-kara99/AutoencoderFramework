@@ -83,3 +83,50 @@ class SoftTrustworthinessLoss(nn.Module):
             # weight ≈ 1 for ranks ≤ k, decays to 0 at rank = k+1
             W[i] = torch.clamp((k + 1 - R) / k, 0.0, 1.0)
         return W
+
+class LLELoss(nn.Module):
+    """
+    Differentiable LLE-style loss for autoencoders.
+
+    Args:
+        k: number of neighbors for local reconstruction
+        reg: regularization term for numerical stability
+    """
+    def __init__(self, k=10, reg=1e-3):
+        super(LLELoss, self).__init__()
+        self.k = k
+        self.reg = reg
+
+    def forward(self, X, Z):
+        """
+        X: input data tensor, shape (n, d_in)
+        Z: latent codes tensor, shape (n, d_lat)
+        """
+        n = X.size(0)
+
+        # pairwise distances in input space
+        D = torch.cdist(X, X)
+
+        # k+1 nearest neighbors (including self), then drop self
+        knn = torch.topk(D, self.k + 1, largest=False).indices
+        neighbors = knn[:, 1:]
+
+        # solve reconstruction weights for each point
+        W = torch.zeros(n, self.k, device=X.device, dtype=X.dtype)
+        I = torch.eye(self.k, device=X.device, dtype=X.dtype)
+        for i in range(n):
+            Xi = X[i : i + 1]
+            Xj = X[neighbors[i]]
+            C = (Xj - Xi) @ (Xj - Xi).t()
+            C += self.reg * I
+            ones = torch.ones(self.k, device=X.device, dtype=X.dtype)
+            w = torch.linalg.solve(C, ones)
+            W[i] = w / w.sum()
+
+        # reconstruct each Z[i] from its neighbors
+        Z_neigh = Z[neighbors]              # shape: (n, k, d_lat)
+        Z_recon = (W.unsqueeze(-1) * Z_neigh).sum(dim=1)
+
+        # mean squared error between Z and its local reconstruction
+        return F.mse_loss(Z_recon, Z)
+    
