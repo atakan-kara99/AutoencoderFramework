@@ -1,7 +1,10 @@
 import loss
 import torch
+import numpy as np
 import torch.nn as nn
 import torch.optim as optim
+from sklearn.neighbors import NearestNeighbors
+from visualizer import Visualizer
 
 class Trainer:
     """
@@ -16,10 +19,13 @@ class Trainer:
         min_delta (float): Minimum change in the monitored loss to qualify as an improvement.
         print_every (int): Interval (in epochs) at which to print training loss.
         batch_size (int): Number of samples per mini-batch.
+        loss_names (List[str]): Which losses to use. Subset of ['mse', 'cos', 'trust', 'lle'].
+        sample_neighbors (bool): If True, samples neighbors for mini-batch training.
     """
     def __init__(self, model, dataset, learning_rate=1e-3,
-                 num_epochs=-1, patience=40, min_delta=1e-5,
-                 print_every=20, batch_size=32):
+                 num_epochs=-1, patience=40, min_delta=1e-6,
+                 print_every=20, batch_size=16, loss_names=['mse'],
+                 sample_neighbors=False):
         # Store dataset and model
         self.model = model
         self.dataset = dataset
@@ -30,13 +36,22 @@ class Trainer:
         self.min_delta = min_delta
         self.print_every = print_every
         self.batch_size = batch_size
-
+        self.loss_names = loss_names
+        self.sample_neighbors = sample_neighbors
         # Define loss function and optimizer
         self.mse_loss = nn.MSELoss()
-        self.cosine_sim = nn.CosineSimilarity(dim=1, eps=1e-8)
-        self.softTrust_loss = loss.SoftTrustworthinessLoss(k=10, tau_r=0.5, tau_s=0.5)
-        #self.LLE_loss = loss.LLELoss(k=5, reg=1e-3)
+        self.cos_sim = nn.CosineSimilarity(dim=1, eps=1e-8)
+        self.trust_loss = loss.TrustworthinessLoss(k=4, tau_r=0.1, tau_s=0.1)
+        self.lle_loss = loss.LLELoss(k=4, reg=1e-3)
+        self.kld_loss = nn.KLDivLoss(reduction='batchmean')
+        # Initialize optimizer
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        # precompute neighbors if requested
+        if self.sample_neighbors:
+            nbrs = NearestNeighbors(n_neighbors=self.batch_size,
+                                    algorithm='auto').fit(self.dataset.data)
+            # neighbor_indices[i] is an array of indices (including i itself) closest to i
+            self.neighbor_indices = nbrs.kneighbors(self.dataset.data, return_distance=False)
 
     def train(self):
         """
@@ -57,77 +72,87 @@ class Trainer:
         use_early_stopping = (self.num_epochs < 0)
         max_epochs = float('inf') if use_early_stopping else self.num_epochs
 
+        # For normalization
+        self._max = {name: 0.0 for name in self.loss_names}
+
         # Training loop
         while epoch < max_epochs:
             epoch += 1
             # Shuffle data indices for this epoch
             perm = torch.randperm(N)
-            epoch_loss = 0.0
-            epoch_loss_mse = 0.0
-            epoch_loss_cos = 0.0
-            epoch_loss_st  = 0.0
-            #epoch_loss_lle = 0.0
             num_batches = 0
+
+            epoch_totals = {name: 0.0 for name in self.loss_names}
+            epoch_totals['total'] = 0.0
 
             # Mini-batch training
             for start in range(0, N, self.batch_size):
                 # Select batch indices and data
-                idx = perm[start:start + self.batch_size]
+                if self.sample_neighbors:
+                    # choose one random anchor, then its nearest‐neighbor block
+                    anchor = np.random.randint(0, N)
+                    idx = torch.from_numpy(self.neighbor_indices[anchor])
+                else:
+                    idx = perm[start:start + self.batch_size]
                 batch = self.dataset.data[idx]
-
+                # Visualizer(
+                #     layout=(1, 1), 
+                #     plot_specs=[{"clusters": [self.dataset.data, batch], "kwargs": {"title": "Batch"}}]
+                # ).show()
                 # Zero gradient buffers
                 self.optimizer.zero_grad()
                 # Forward pass through model
                 output = self.model(batch)
-                # Compute losses
-                mse_loss = self.mse_loss(output, batch)
-                cos_loss = (1.0 - self.cosine_sim(output, batch)).mean() * 10
-                st_loss  = self.softTrust_loss(output, batch) / 10
-                #lle_loss = self.LLE_loss(batch, output) * 10000
-                loss = mse_loss
+
+                # Compute only selected raw losses
+                raw = {}
+                if "mse"   in self.loss_names: raw["mse"]   = self.mse_loss(output, batch)
+                if "cos"   in self.loss_names: raw["cos"]   = (1.0 - self.cos_sim(output, batch)).mean()
+                if "trust" in self.loss_names: raw["trust"] = self.trust_loss(output, batch)
+                if "lle"   in self.loss_names: raw["lle"]   = self.lle_loss(output, batch)
+                if "kld"   in self.loss_names: raw["kld"]   = self.kld_loss(output.log_softmax(dim=1), batch.softmax(dim=1))
+
+                # Update normalization maxima
+                for name, v in raw.items():
+                    self._max[name] = max(self._max[name], v.item())
+
+                # Normalize & combine
+                norm = {name: raw[name]/self._max[name] for name in raw}
+                loss = sum(norm.values())
+                
                 # Backpropagation
                 loss.backward()
                 # Update model parameters
                 self.optimizer.step()
 
                 # Accumulate loss
-                epoch_loss += loss.item()
-                epoch_loss_mse += mse_loss.item()
-                epoch_loss_cos += cos_loss.item()
-                epoch_loss_st  += st_loss.item()
-                #epoch_loss_lle += lle_loss.item()
+                epoch_totals['total'] += loss.item()
+                for name, val in norm.items():
+                    epoch_totals[name] += val.item()
                 num_batches += 1
 
             # Compute average loss for this epoch
-            avg_loss = epoch_loss / num_batches
-            mse_loss = epoch_loss_mse / num_batches
-            cos_loss = epoch_loss_cos / num_batches
-            st_loss  = epoch_loss_st / num_batches
-            #lle_loss = epoch_loss_lle / num_batches
+            avg = {name: epoch_totals[name] / num_batches
+                   for name in epoch_totals}
 
             # Print average loss at specified intervals
             if epoch % self.print_every == 0:
+                losses_str = "   ".join(f"{name.upper():>4}={avg[name]:.6f}"
+                                       for name in self.loss_names)
                 total_epochs = '∞' if use_early_stopping else self.num_epochs
-                print(f"Epoch [{epoch}/{total_epochs}]   "
-                      f"Total Loss: {avg_loss:.6f}   "
-                      f"MSE Loss: {mse_loss:.6f}   "
-                      f"Cosine Loss: {cos_loss:.6f}   "
-                      f"sTrust Loss: {st_loss:.6f}   "
-                      #f"LLE Loss: {lle_loss:.6f}   "
-                      f"TotalTotal Loss: {mse_loss + cos_loss + st_loss:.6f}")
+                print(f"EPOCH [{epoch}/{total_epochs}]   "
+                      f"TOTAL={avg['total']:.6f}   {losses_str}")
 
             # Early stopping check
             if use_early_stopping:
-                # Check if loss has improved by at least min_delta
-                if avg_loss + self.min_delta < best_loss:
-                    best_loss = avg_loss
+                if avg['total'] + self.min_delta < best_loss:
+                    best_loss = avg['total']
                     epochs_no_improve = 0
                 else:
                     epochs_no_improve += 1
-
-                # Trigger early stopping if no improvement for patience epochs
                 if epochs_no_improve >= self.patience:
-                    print(f"Early stopping triggered at epoch {epoch} (no improvement for {self.patience} epochs).")
+                    print(f"Early stopping at epoch {epoch} "
+                          f"(no improvement for {self.patience} epochs).")
                     break
 
         return self
