@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class SoftTrustworthinessLoss(nn.Module):
+class TrustworthinessLoss(nn.Module):
     """
     Differentiable approximation of the trustworthiness score as a PyTorch loss.
 
