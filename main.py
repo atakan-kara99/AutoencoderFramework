@@ -10,7 +10,7 @@ from model import Ae3Dto1D
 from dataset import Ds3Dbut3Dsingle, Ds3Dbut2Dsingle, Ds3Dbut1Dsingle, Ds3Dbut2Dmulti
 
 # 3D to 2D
-from model import Ae3Dto2D, Ae3Dto2Dlinear
+from model import Ae3Dto2D, Ae3Dto2Dlinear, Ae3Dto2Dwide
 from dataset import Ds3Dbut3Dsingle, Ds3Dbut2Dsingle, Ds3Dbut1Dsingle, Ds3Dbut2Dmulti, Ds3Dbut3Dmulti
 
 # Moons
@@ -21,8 +21,11 @@ from dataset import Ds3DSwissRoll
 
 
 trainer = Trainer(
-    model=Ae3Dto2D(),
+    model=Ae3Dto2Dwide(),
     dataset=Ds3DSwissRoll(),
+    loss_names=['mse'],
+    sample_neighbors=True,
+    batch_size=8,
     ).train()
 
 Visualizer(

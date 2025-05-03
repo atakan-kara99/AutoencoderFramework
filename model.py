@@ -30,6 +30,20 @@ class Autoencoder(nn.Module, ABC):
 
 
 ''' ------------------------ Autoencoders for 3D Data ------------------------ '''
+class Ae3Dto2Dwide(Autoencoder):
+    def __init__(self):
+        super().__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(3, 64),
+            nn.ReLU(),
+            nn.Linear(64, 2),
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(2, 64),
+            nn.ReLU(),
+            nn.Linear(64, 3),
+        )
+
 class Ae3Dto2D(Autoencoder):
     def __init__(self):
         super().__init__()
