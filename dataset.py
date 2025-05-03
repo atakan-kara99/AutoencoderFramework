@@ -296,7 +296,7 @@ class DsTrue3DMoons(Dataset):
 class Ds3DSwissRoll(Dataset):
     def __init__(self):
         super().__init__(
-            self.swiss_roll_clusters(50, 0.10, ( 0.00,  0.00,  0.00), 4, 0.0, 4*pi, -5.0, -5.0, 1.0)
+            self.swiss_roll_clusters(100, 0.10, ( 0.00,  0.00,  0.00), 4, 0.0, 4*pi, -5.0, -5.0, 1.0)
             )
 
 if __name__ == "__main__":
