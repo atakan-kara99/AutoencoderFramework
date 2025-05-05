@@ -265,7 +265,7 @@ class DsTrue3DMoons(Dataset):
 class Ds2DSwissRoll(Dataset):
     def __init__(self):
         super().__init__(
-            self.swiss_roll(33, 0.20, ( 0.00,  0.00), 2, 4, 0.0, 4*pi, 1.0)
+            self.swiss_roll(50, 0.20, ( 0.00,  0.00), 2, 4, 0.0, 4*pi, 1.0)
             )
 class Ds3DSwissRoll(Dataset):
     def __init__(self):
