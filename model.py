@@ -80,6 +80,20 @@ class Ae3Dto1D(Autoencoder):
 
 
 ''' ------------------------ Autoencoders for 2D Data ------------------------ '''
+class Ae2Dto1Dwide(Autoencoder):
+    def __init__(self):
+        super().__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(2, 32),
+            nn.ReLU(),
+            nn.Linear(32, 1),
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(1, 32),
+            nn.ReLU(),
+            nn.Linear(32, 2),
+        )
+
 class Ae2Dto1D(Autoencoder):
     def __init__(self):
         super().__init__()
