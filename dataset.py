@@ -77,8 +77,8 @@ class Dataset(ABC):
         # Convert to torch tensor
         return torch.tensor(X, dtype=torch.float32)
 
-    def sphere3D(self, n_samples, noise, center, radius, 
-            theta_start=0.0, theta_length=2*np.pi, phi_start=0.0, phi_length=np.pi):
+    def sphere3D(self, n_samples, noise, center, radius, theta_start=0.0, 
+                 theta_length=2*np.pi, phi_start=0.0, phi_length=np.pi):
         """
         Generate a parametric spherical segment in R^3.
 
@@ -109,83 +109,50 @@ class Dataset(ABC):
         X += np.array(center).reshape(1, 3)
         return torch.tensor(X, dtype=torch.float32)
 
-    def swiss_roll3D(self,
-                n_samples,
-                noise,
-                center,
-                t_start=0.0,
-                t_length=4*np.pi,
-                height_start=0.0,
-                height_length=1.0,
-                radius_factor=1.0):
+    def swiss_roll(self, n_samples, noise, center, dim = 3, n_segments = 1, t_start = 0.0, 
+                   t_length = 4*np.pi, height_start = 0.0, height_length = 1.0, radius_factor = 1.0,):
         """
-        Generate a Swiss roll surface in R^3.
+        Generate a Swiss-roll (spiral) in 2D or 3D, with optional segmentation into clusters.
 
         Parameters:
-            n_samples    : number of points to sample
-            noise        : std. dev. of Gaussian noise in all dimensions
-            center       : sequence of length 3 specifying shift along each axis
-            t_start      : starting parameter around the roll (radians)
-            t_length     : span of the roll parameter (radians)
-            height_start : starting height along the roll axis
-            height_length: range of heights along the roll axis
-            radius_factor: scale factor for the roll radius
-
-        Returns:
-            torch.Tensor of shape (n_samples, 3)
-        """
-        t = np.random.rand(n_samples) * t_length + t_start
-        h = np.random.rand(n_samples) * height_length + height_start
-        x = radius_factor * t * np.cos(t)
-        y = h
-        z = radius_factor * t * np.sin(t)
-        X = np.column_stack([x, y, z])
-        X += noise * np.random.randn(n_samples, 3)
-        X += np.array(center).reshape(1, 3)
-        return torch.tensor(X, dtype=torch.float32)
-
-    def swiss_roll_clusters(self,
-                            n_samples_per,
-                            noise,
-                            center,
-                            n_segments,
-                            t_start=0.0,
-                            t_length=4*np.pi,
-                            height_start=0.0,
-                            height_length=1.0,
-                            radius_factor=1.0):
-        """
-        Partition the 3D Swiss roll surface into clusters for each segment of the parameter t.
-
-        Parameters:
-            n_samples_per: points per segment
+            n_samples    : if n_segments==1, total points; if >1, points per segment
             noise        : std. dev. of Gaussian noise
-            center       : shift (length 3)
-            n_segments   : number of segments along the roll
-            t_start      : starting t for the full roll
-            t_length     : total span of t
-            height_start : starting height
-            height_length: total height span
-            radius_factor: scale of roll radius
+            center       : length-2 or length-3 shift along each axis
+            dim          : 2 or 3
+            n_segments   : how many clusters to split into (1 => no splitting)
+            t_start      : start angle (radians)
+            t_length     : total angle span (radians)
+            height_start : 3D only: start height
+            height_length: 3D only: total height span
+            radius_factor: scale factor for the spiral radius
 
         Returns:
-            List[torch.Tensor] of length n_segments, each of shape (n_samples_per, 3)
+            If n_segments == 1:
+                Tensor of shape (n_samples, dim)
+            Else:
+                List of n_segments tensors, each of shape (n_samples, dim)
         """
-        segments = []
+        center = np.array(center, dtype=float).reshape(1, dim)
+        def _sample_segment(ts, seg_len):
+            t = np.random.rand(n_samples) * seg_len + ts
+            x = radius_factor * t * np.cos(t)
+            if dim == 3:
+                h = np.random.rand(n_samples) * height_length + height_start
+                y, z = h, radius_factor * t * np.sin(t)
+                X = np.column_stack([x, y, z])
+            else:
+                y = radius_factor * t * np.sin(t)
+                X = np.column_stack([x, y])
+            X += noise * np.random.randn(n_samples, dim)
+            X += center
+            return torch.tensor(X, dtype=torch.float32)
+        # if only one segment, just sample and return a Tensor
+        if n_segments == 1:
+            return _sample_segment(t_start, t_length)
+        # otherwise, partition into clusters
         seg_len = t_length / n_segments
-        for i in range(n_segments):
-            ts = t_start + i * seg_len
-            cluster = self.swiss_roll3D(
-                n_samples_per,
-                noise,
-                center,
-                t_start=ts,
-                t_length=seg_len,
-                height_start=height_start,
-                height_length=height_length,
-                radius_factor=radius_factor)
-            segments.append(cluster)
-        return segments
+        return [ _sample_segment(t_start + i * seg_len, seg_len) for i in range(n_segments) ]
+
 
 ''' -------------------------------------- 3D Data -------------------------------------- '''
 class Ds3Dbut3Dmulti(Dataset):
@@ -268,10 +235,12 @@ class Ds2Dbut1Dsingle(Dataset):
 class Ds2DMoons(Dataset):
     def __init__(self):
         super().__init__([
-            self.moon(2, 50, 0.05, ( 0.50,  0.00), 1.0,  0, pi),
-            self.moon(2, 50, 0.05, (-0.50,  0.00), 1.0, pi, pi),
-            self.cloud(1, (-0.50, -0.50), 0.01),
-            self.cloud(1, ( 0.50,  0.50), 0.01),
+            self.moon(2, 25, 0.05, (-0.50,  0.00), 1.0,     pi, pi/2),
+            self.moon(2, 25, 0.05, (-0.50,  0.00), 1.0, 1.5*pi, pi/2),
+            self.moon(2, 25, 0.05, ( 0.50,  0.00), 1.0,      0, pi/2),
+            self.moon(2, 25, 0.05, ( 0.50,  0.00), 1.0,   pi/2, pi/2),
+            self.cloud(1, ( 0.00,  0.00), 0.01),
+            #self.cloud(1, ( 0.50,  0.50), 0.01),
         ])
 class Ds3DMoons(Dataset):
     def __init__(self):
@@ -293,10 +262,15 @@ class DsTrue3DMoons(Dataset):
         ])
 
 ''' -------------------------------------- Swiss Roll Data -------------------------------------- '''
+class Ds2DSwissRoll(Dataset):
+    def __init__(self):
+        super().__init__(
+            self.swiss_roll(33, 0.20, ( 0.00,  0.00), 2, 4, 0.0, 4*pi, 1.0)
+            )
 class Ds3DSwissRoll(Dataset):
     def __init__(self):
         super().__init__(
-            self.swiss_roll_clusters(100, 0.10, ( 0.00,  0.00,  0.00), 4, 0.0, 4*pi, -5.0, -5.0, 1.0)
+            self.swiss_roll(100, 0.10, ( 0.00,  0.00,  0.00), 3, 4, 0.0, 4*pi, -5.0, -5.0, 1.0)
             )
 
 if __name__ == "__main__":
@@ -315,11 +289,12 @@ if __name__ == "__main__":
     #     ]
     # ).show()
     Visualizer(
-    layout=(2, 2),
+    layout=(2, 3),
     plot_specs=[
         {"clusters": Ds2DMoons().clusters,     "kwargs": {"title": "Ds2DMoons"}},
         {"clusters": Ds3DMoons().clusters,     "kwargs": {"title": "Ds3DMoons"}},
         {"clusters": DsTrue3DMoons().clusters, "kwargs": {"title": "DsTrue3DMoons"}},
+        {"clusters": Ds2DSwissRoll().clusters, "kwargs": {"title": "Ds2DSwissRoll"}},
         {"clusters": Ds3DSwissRoll().clusters, "kwargs": {"title": "Ds3DSwissRoll"}},
         ]
     ).show()
