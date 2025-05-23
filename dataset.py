@@ -153,6 +153,54 @@ class Dataset(ABC):
         seg_len = t_length / n_segments
         return [ _sample_segment(t_start + i * seg_len, seg_len) for i in range(n_segments) ]
 
+    def torus(self, num_samples, noise, center, R=2.0, r=1.0, euler_angles=None):
+        """
+        Sample points on a torus, optionally rotate and translate them.
+
+        Args:
+            num_samples (int): Number of points to sample.
+            R (float): Major radius (distance from center of tube to center of torus).
+            r (float): Minor radius (tube radius).
+            noise (float): Stddev of Gaussian noise to add.
+            center (tuple of 3 floats): (cx, cy, cz) translation to apply.
+            euler_angles (tuple of 3 floats): (alpha, beta, gamma) in radians;
+                builds R = Rz(gamma) Ry(beta) Rx(alpha).
+
+        Returns:
+            torch.FloatTensor of shape (num_samples, 3)
+        """
+        # --- sample raw torus ---
+        theta = 2 * np.pi * np.random.rand(num_samples)
+        phi   = 2 * np.pi * np.random.rand(num_samples)
+        x = (R + r * np.cos(phi)) * np.cos(theta)
+        y = (R + r * np.cos(phi)) * np.sin(theta)
+        z = r * np.sin(phi)
+        points = np.stack((x, y, z), axis=1)  # (N,3)
+        # --- optional rotation from Euler angles ---
+        if euler_angles is not None:
+            alpha, beta, gamma = euler_angles
+            # Rotation about X, Y, Z
+            Rx = np.array([[1, 0, 0],
+                        [0, np.cos(alpha), -np.sin(alpha)],
+                        [0, np.sin(alpha),  np.cos(alpha)]])
+            Ry = np.array([[ np.cos(beta), 0, np.sin(beta)],
+                        [           0, 1,           0],
+                        [-np.sin(beta), 0, np.cos(beta)]])
+            Rz = np.array([[np.cos(gamma), -np.sin(gamma), 0],
+                        [np.sin(gamma),  np.cos(gamma), 0],
+                        [            0,              0, 1]])
+            rotation_matrix = Rz @ Ry @ Rx
+            rm = np.asarray(rotation_matrix, dtype=float)
+            points = points @ rm.T
+        # --- translate to center ---
+        center = np.asarray(center, dtype=float).reshape(1, 3)
+        points = points + center
+        # --- optional noise ---
+        if noise > 0:
+            noise = np.random.normal(scale=noise, size=points.shape)
+            points += noise
+        return torch.tensor(points, dtype=torch.float32)
+
 
 ''' -------------------------------------- 3D Data -------------------------------------- '''
 class Ds3Dbut3Dmulti(Dataset):
@@ -272,29 +320,57 @@ class Ds3DSwissRoll(Dataset):
         super().__init__(
             self.swiss_roll(100, 0.10, ( 0.00,  0.00,  0.00), 3, 4, 0.0, 4*pi, -5.0, -5.0, 1.0)
             )
+        
+''' -------------------------------------- Torus Data -------------------------------------- '''
+class Ds3DTorus(Dataset):
+    def __init__(self):
+        super().__init__([
+            self.torus(250, 0.05, (-2.00,  0.00,  0.00), 5.0, 1.0, (0   , 0, 0)),
+            self.torus(250, 0.05, ( 2.00,  0.00,  0.00), 5.0, 1.0, (pi/2, 0, 0)),
+            self.cloud(2, ( 0.00,  0.00,  0.00), 0.25),
+        ])
+
+''' -------------------------------------- Sphere Data -------------------------------------- '''
+class Ds3DSphere(Dataset):
+    def __init__(self):
+        super().__init__([
+            self.sphere3D(100, 0.00, ( 0.00,  0.00,  0.00), 2.0),
+            self.sphere3D(200, 0.00, ( 0.00,  0.00,  0.00), 4.0),
+            self.sphere3D(400, 0.00, ( 0.00,  0.00,  0.00), 6.0),
+            self.cloud(3, ( 3.00,  0.00,  0.00), 0.25),
+            self.cloud(3, ( 5.00,  0.00,  0.00), 0.25),
+        ])
+
 
 if __name__ == "__main__":
     # Dataset Showcase
     # Visualizer(
     # layout=(2, 4), 
-    # plot_specs=[
-    #     {"clusters": Ds2Dbut1Dsingle().clusters, "kwargs": {"title": "Ds2Dbut1Dsingle"}},
-    #     {"clusters": Ds2Dbut2Dsingle().clusters, "kwargs": {"title": "Ds2Dbut2Dsingle"}},
-    #     {"clusters": Ds2Dbut2Dmulti().clusters,  "kwargs": {"title": "Ds2Dbut2Dmulti"}},
-    #     {"clusters": Ds3Dbut1Dsingle().clusters, "kwargs": {"title": "Ds3Dbut1Dsingle"}},
-    #     {"clusters": Ds3Dbut2Dsingle().clusters, "kwargs": {"title": "Ds3Dbut2Dsingle"}},
-    #     {"clusters": Ds3Dbut2Dmulti().clusters,  "kwargs": {"title": "Ds3Dbut2Dmulti"}},
-    #     {"clusters": Ds3Dbut3Dsingle().clusters, "kwargs": {"title": "Ds3Dbut3Dsingle"}},
-    #     {"clusters": Ds3Dbut3Dmulti().clusters,  "kwargs": {"title": "Ds3Dbut3Dmulti"}},
-    #     ]
+    #     plot_specs=[
+    #         {"clusters": Ds2Dbut1Dsingle().clusters, "kwargs": {"title": "Ds2Dbut1Dsingle"}},
+    #         {"clusters": Ds2Dbut2Dsingle().clusters, "kwargs": {"title": "Ds2Dbut2Dsingle"}},
+    #         {"clusters": Ds2Dbut2Dmulti().clusters,  "kwargs": {"title": "Ds2Dbut2Dmulti"}},
+    #         {"clusters": Ds3Dbut1Dsingle().clusters, "kwargs": {"title": "Ds3Dbut1Dsingle"}},
+    #         {"clusters": Ds3Dbut2Dsingle().clusters, "kwargs": {"title": "Ds3Dbut2Dsingle"}},
+    #         {"clusters": Ds3Dbut2Dmulti().clusters,  "kwargs": {"title": "Ds3Dbut2Dmulti"}},
+    #         {"clusters": Ds3Dbut3Dsingle().clusters, "kwargs": {"title": "Ds3Dbut3Dsingle"}},
+    #         {"clusters": Ds3Dbut3Dmulti().clusters,  "kwargs": {"title": "Ds3Dbut3Dmulti"}},
+    #         ]
+    # ).show()
+    # Visualizer(
+    # layout=(2, 3),
+    #     plot_specs=[
+    #         {"clusters": Ds2DMoons().clusters,     "kwargs": {"title": "Ds2DMoons"}},
+    #         {"clusters": Ds3DMoons().clusters,     "kwargs": {"title": "Ds3DMoons"}},
+    #         {"clusters": DsTrue3DMoons().clusters, "kwargs": {"title": "DsTrue3DMoons"}},
+    #         {"clusters": Ds2DSwissRoll().clusters, "kwargs": {"title": "Ds2DSwissRoll"}},
+    #         {"clusters": Ds3DSwissRoll().clusters, "kwargs": {"title": "Ds3DSwissRoll"}},
+    #         ]
     # ).show()
     Visualizer(
-    layout=(2, 3),
-    plot_specs=[
-        {"clusters": Ds2DMoons().clusters,     "kwargs": {"title": "Ds2DMoons"}},
-        {"clusters": Ds3DMoons().clusters,     "kwargs": {"title": "Ds3DMoons"}},
-        {"clusters": DsTrue3DMoons().clusters, "kwargs": {"title": "DsTrue3DMoons"}},
-        {"clusters": Ds2DSwissRoll().clusters, "kwargs": {"title": "Ds2DSwissRoll"}},
-        {"clusters": Ds3DSwissRoll().clusters, "kwargs": {"title": "Ds3DSwissRoll"}},
-        ]
+    layout=(1, 2),
+        plot_specs=[
+            {"clusters": Ds3DTorus().clusters,  "kwargs": {"title": "Ds3DTorus"}},
+            {"clusters": Ds3DSphere().clusters, "kwargs": {"title": "Ds3DSphere"}},
+            ]
     ).show()
