@@ -1,10 +1,7 @@
 from trainer import Trainer
 from visualizer import Visualizer
 
-from model import Ae2Dto1D, Ae2Dto1Dlinear, Ae2Dto1Dwide
-from model import Ae3Dto1D
-from model import Ae3Dto2D, Ae3Dto2Dlinear, Ae3Dto2Dwide
-from model import StandardVAE, MixtureVAE
+from model import AE, VAE
 
 from dataset import Ds2Dbut2Dsingle, Ds2Dbut1Dsingle, Ds2Dbut2Dmulti
 from dataset import Ds3Dbut3Dsingle, Ds3Dbut2Dsingle, Ds3Dbut1Dsingle, Ds3Dbut2Dmulti
@@ -16,11 +13,11 @@ from dataset import Ds3DSphere
 
 
 trainer = Trainer(
-    model=StandardVAE(3, 64, 2),
+    model=VAE(3, 64, 2),
     dataset=Ds3DTorus(),
-    losses={'vae': 1.0},
+    losses={'vae': 1.0, 'mse': 8.0},
     sample_neighbors=True,
-    batch_size=8,
+    batch_size=16,
     ).train()
 
 Visualizer(
