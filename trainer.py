@@ -19,12 +19,14 @@ class Trainer:
         min_delta (float): Minimum change in the monitored loss to qualify as an improvement.
         print_every (int): Interval (in epochs) at which to print training loss.
         batch_size (int): Number of samples per mini-batch.
-        loss_names (List[str]): Which losses to use. Subset of ['mse', 'cos', 'trust', 'lle'].
+        losses (Dict[str, float], optional): Mapping from loss-names to their weights.
+            Keys must be a subset of ['mse', 'cos', 'trust', 'lle', 'kld'].
+            Defaults to {'mse': 1.0}.
         sample_neighbors (bool): If True, samples neighbors for mini-batch training.
     """
     def __init__(self, model, dataset, learning_rate=1e-3,
                  num_epochs=-1, patience=40, min_delta=1e-6,
-                 print_every=20, batch_size=16, loss_names=['mse'],
+                 print_every=20, batch_size=16, losses={'mse': 1.0},
                  sample_neighbors=False):
         # Store dataset and model
         self.model = model
@@ -36,22 +38,23 @@ class Trainer:
         self.min_delta = min_delta
         self.print_every = print_every
         self.batch_size = batch_size
-        self.loss_names = loss_names
         self.sample_neighbors = sample_neighbors
+        self.losses = losses
         # Define loss function and optimizer
         self.mse_loss = nn.MSELoss()
-        self.cos_sim = nn.CosineSimilarity(dim=1, eps=1e-8)
+        self.cos_sim = nn.CosineSimilarity()
         self.trust_loss = loss.TrustworthinessLoss(k=4, tau_r=0.1, tau_s=0.1)
-        self.lle_loss = loss.LLELoss(k=4, reg=1e-3)
+        self.lle_loss = loss.LLELoss(k=4)
         self.kld_loss = nn.KLDivLoss(reduction='batchmean')
+        self.vae_loss = loss.VAELoss()
         # Initialize optimizer
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         # precompute neighbors if requested
         if self.sample_neighbors:
-            nbrs = NearestNeighbors(n_neighbors=self.batch_size,
-                                    algorithm='auto').fit(self.dataset.data)
+            nbrs = NearestNeighbors(n_neighbors=batch_size,
+                                    algorithm='auto').fit(dataset.data)
             # neighbor_indices[i] is an array of indices (including i itself) closest to i
-            self.neighbor_indices = nbrs.kneighbors(self.dataset.data, return_distance=False)
+            self.neighbor_indices = nbrs.kneighbors(dataset.data, return_distance=False)
 
     def train(self):
         """
@@ -60,6 +63,7 @@ class Trainer:
         Returns:
             self: Enables method chaining after training.
         """
+        model = self.model
         # Total number of samples
         N = self.dataset.data.size(0)
         # Best loss for early stopping
@@ -73,7 +77,7 @@ class Trainer:
         max_epochs = float('inf') if use_early_stopping else self.num_epochs
 
         # For normalization
-        self._max = {name: 0.0 for name in self.loss_names}
+        self._max = {name: 0.0 for name in self.losses}
 
         # Training loop
         while epoch < max_epochs:
@@ -82,7 +86,7 @@ class Trainer:
             perm = torch.randperm(N)
             num_batches = 0
 
-            epoch_totals = {name: 0.0 for name in self.loss_names}
+            epoch_totals = {name: 0.0 for name in self.losses}
             epoch_totals['total'] = 0.0
 
             # Mini-batch training
@@ -99,26 +103,28 @@ class Trainer:
                 #     layout=(1, 1), 
                 #     plot_specs=[{"clusters": [self.dataset.data, batch], "kwargs": {"title": "Batch"}}]
                 # ).show()
+
                 # Zero gradient buffers
                 self.optimizer.zero_grad()
+
                 # Forward pass through model
-                output = self.model(batch)
+                output, latent, mu, logvar = model(batch)
 
                 # Compute only selected raw losses
-                raw = {}
-                if "mse"   in self.loss_names: raw["mse"]   = self.mse_loss(output, batch)
-                if "cos"   in self.loss_names: raw["cos"]   = (1.0 - self.cos_sim(output, batch)).mean()
-                if "trust" in self.loss_names: raw["trust"] = self.trust_loss(output, batch)
-                if "lle"   in self.loss_names: raw["lle"]   = self.lle_loss(output, batch)
-                if "kld"   in self.loss_names: raw["kld"]   = self.kld_loss(output.log_softmax(dim=1), batch.softmax(dim=1))
+                raw = {}   
+                if "mse"   in self.losses: raw["mse"]   = self.mse_loss(output, batch)
+                if "cos"   in self.losses: raw["cos"]   = (1.0 - self.cos_sim(output, batch)).mean()
+                if "trust" in self.losses: raw["trust"] = self.trust_loss(output, batch)
+                if "lle"   in self.losses: raw["lle"]   = self.lle_loss(output, batch)
+                if "kld"   in self.losses: raw["kld"]   = self.kld_loss(output.log_softmax(dim=1), batch.softmax(dim=1))
+                if "vae"   in self.losses: raw["vae"]   = self.vae_loss(mu, logvar)
 
-                # Update normalization maxima
-                for name, v in raw.items():
-                    self._max[name] = max(self._max[name], v.item())
-
-                # Normalize & combine
-                norm = {name: raw[name]/self._max[name] for name in raw}
-                loss = sum(norm.values())
+                # Apply weights
+                weighted = {
+                    name: self.losses[name] * v
+                    for name, v in raw.items()
+                }
+                loss = sum(weighted.values())
                 
                 # Backpropagation
                 loss.backward()
@@ -127,7 +133,7 @@ class Trainer:
 
                 # Accumulate loss
                 epoch_totals['total'] += loss.item()
-                for name, val in norm.items():
+                for name, val in weighted.items():
                     epoch_totals[name] += val.item()
                 num_batches += 1
 
@@ -138,7 +144,7 @@ class Trainer:
             # Print average loss at specified intervals
             if epoch % self.print_every == 0:
                 losses_str = "   ".join(f"{name.upper():>4}={avg[name]:.6f}"
-                                       for name in self.loss_names)
+                                       for name in self.losses)
                 total_epochs = '∞' if use_early_stopping else self.num_epochs
                 print(f"EPOCH [{epoch}/{total_epochs}]   "
                       f"TOTAL={avg['total']:.6f}   {losses_str}")
@@ -173,20 +179,24 @@ class Trainer:
         Raises:
             ValueError: If 'type' is not recognized.
         """
+        model = self.model
+        data = self.dataset.data
         # Disable gradient computation for inference
         with torch.no_grad():
             if type == "input":
-                d = self.dataset.data
+                d = data
             else:
-                # Encode data to latent space
-                d = self.model.encoder(self.dataset.data)
+                # Encode data
+                output, latent, _, _ = model(data)
+
                 if type == "latent":
+                    d = latent
                     # If latent has singleton feature dimension, squeeze it
                     if d.dim() >= 2 and d.size(1) == 1:
                         d = d.squeeze(1)
                 elif type == "output":
                     # Decode latent back to output space
-                    d = self.model.decoder(d)
+                    d = output
                 else:
                     raise ValueError(f"Unknown type={type!r}, expected 'input', 'latent' or 'output'")
 
