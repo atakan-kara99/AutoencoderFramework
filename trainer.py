@@ -47,6 +47,7 @@ class Trainer:
         self.kld_loss = nn.KLDivLoss(reduction='batchmean')
         self.vae_loss = loss.VAELoss()
         self.tri_loss = loss.TripletMarginLoss()
+        self.lap_loss = loss.GraphLaplacianLoss(k=4, sigma=1.0)
         # Initialize optimizer
         self.optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         # precompute neighbors if requested
@@ -119,6 +120,7 @@ class Trainer:
                 if "kld"   in self.losses: raw["kld"]   = self.kld_loss(output.log_softmax(dim=1), batch.softmax(dim=1))
                 if "vae"   in self.losses: raw["vae"]   = self.vae_loss(mu, logvar)
                 if "tri"   in self.losses: raw["tri"]   = self.tri_loss(output, labels)
+                if "lap"   in self.losses: raw["lap"]   = self.lap_loss(output, batch)
 
                 # Apply weights
                 weighted = {

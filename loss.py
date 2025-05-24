@@ -2,6 +2,46 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+class GraphLaplacianLoss(nn.Module):
+    """
+    Graph‐Laplacian regularization for autoencoders.
+
+    Args:
+        k: number of neighbors for graph construction
+        sigma: bandwidth for Gaussian kernel
+    """
+    def __init__(self, k=8, sigma=1.0):
+        super().__init__()
+        self.k = k
+        self.sigma = sigma
+
+    def forward(self, X, Z):
+        """
+        X: input data tensor, shape (n, d_in)
+        Z: latent codes tensor, shape (n, d_lat)
+        """
+        n = X.size(0)
+        # pairwise distances in input space
+        D = torch.cdist(X, X, p=2)  # (n, n)
+        # find k+1 nearest (including self), then drop self
+        knn = torch.topk(D, self.k+1, largest=False).indices
+        neighbors = knn[:, 1:]      # (n, k)
+
+        # build adjacency matrix W
+        W = torch.zeros(n, n, device=X.device, dtype=X.dtype)
+        for i in range(n):
+            for j in neighbors[i]:
+                w_ij = torch.exp(- (D[i, j] ** 2) / (self.sigma ** 2))
+                W[i, j] = w_ij
+                W[j, i] = w_ij  # make symmetric
+
+        # compute pairwise squared distances in latent space
+        diff = Z.unsqueeze(1) - Z.unsqueeze(0)    # (n, n, d_lat)
+        sqdist = diff.pow(2).sum(dim=2)            # (n, n)
+
+        # Laplacian loss = sum_{i,j} W[i,j] * ||z_i - z_j||^2
+        return (W * sqdist).sum() / (n * self.k)
+
 class TripletMarginLoss(nn.Module):
     """
     Computes triplet margin loss between an anchor, positive, and negative example.
