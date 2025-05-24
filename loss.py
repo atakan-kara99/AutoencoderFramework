@@ -2,6 +2,46 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
+class VAELoss(nn.Module):
+    """Computes the Kullback–Leibler divergence term for a Variational Autoencoder.
+
+    This loss module calculates the KL divergence between a diagonal Gaussian
+    posterior parameterized by `mu` and `logvar` and the standard normal prior.
+    It returns the mean KL divergence per batch.
+    """
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, mu, logvar):
+        """Compute the KL divergence component of the VAE loss.
+
+        Given the mean (`mu`) and log-variance (`logvar`) of the approximate
+        posterior q(z|x), computes
+
+            KL(q(z|x) || p(z)) = -0.5 * sum(1 + logvar - mu^2 - exp(logvar))
+
+        across the latent dimensions, then averages over the batch.
+
+        Args:
+            mu (torch.Tensor): Tensor of shape (batch_size, latent_dim)
+                representing the mean of the approximate posterior.
+            logvar (torch.Tensor): Tensor of the same shape as `mu`
+                representing the logarithm of the variance of the approximate posterior.
+
+        Returns:
+            torch.Tensor: A scalar tensor containing the mean KL divergence
+            over the batch.
+        """
+        # KL divergence per sample
+        kl_per_sample = -0.5 * torch.sum(
+            1 + logvar - mu.pow(2) - logvar.exp(),
+            dim=1
+        )
+        # Mean over the batch
+        kl = kl_per_sample.mean()
+        return kl
+
 class TrustworthinessLoss(nn.Module):
     """
     Differentiable approximation of the trustworthiness score as a PyTorch loss.
@@ -92,7 +132,7 @@ class LLELoss(nn.Module):
         k: number of neighbors for local reconstruction
         reg: regularization term for numerical stability
     """
-    def __init__(self, k=10, reg=1e-3):
+    def __init__(self, k=10, reg=1e-6):
         super(LLELoss, self).__init__()
         self.k = k
         self.reg = reg
