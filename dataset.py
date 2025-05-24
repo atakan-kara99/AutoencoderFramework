@@ -26,7 +26,7 @@ class Dataset(ABC):
         # Build label list: assign integer label for each cluster's samples
         for label, cluster in enumerate(clusters):
             labels.extend([label] * cluster.size(0))
-        self.labels = labels
+        self.labels = torch.tensor(labels, dtype=torch.long)
         # Concatenate all clusters into one data tensor
         self.data = torch.cat(clusters, dim=0)
         # Store original clusters as numpy arrays for visualization or analysis

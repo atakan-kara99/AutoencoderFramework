@@ -21,7 +21,6 @@ class Trainer:
         batch_size (int): Number of samples per mini-batch.
         losses (Dict[str, float], optional): Mapping from loss-names to their weights.
             Keys must be a subset of ['mse', 'cos', 'trust', 'lle', 'kld'].
-            Defaults to {'mse': 1.0}.
         sample_neighbors (bool): If True, samples neighbors for mini-batch training.
     """
     def __init__(self, model, dataset, learning_rate=1e-3,
@@ -47,6 +46,7 @@ class Trainer:
         self.lle_loss = loss.LLELoss(k=4)
         self.kld_loss = nn.KLDivLoss(reduction='batchmean')
         self.vae_loss = loss.VAELoss()
+        self.tri_loss = loss.TripletMarginLoss()
         # Initialize optimizer
         self.optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         # precompute neighbors if requested
@@ -76,9 +76,6 @@ class Trainer:
         use_early_stopping = (self.num_epochs < 0)
         max_epochs = float('inf') if use_early_stopping else self.num_epochs
 
-        # For normalization
-        self._max = {name: 0.0 for name in self.losses}
-
         # Training loop
         while epoch < max_epochs:
             epoch += 1
@@ -99,9 +96,12 @@ class Trainer:
                 else:
                     idx = perm[start:start + self.batch_size]
                 batch = self.dataset.data[idx]
+                labels = self.dataset.labels[idx]
+
+                # # Optional: visualize the batch
                 # Visualizer(
-                #     layout=(1, 1), 
-                #     plot_specs=[{"clusters": [self.dataset.data, batch], "kwargs": {"title": "Batch"}}]
+                #     layout=(1, 1),
+                #     plot_specs=[{"clusters": [self.dataset.data, test], "kwargs": {"title": "Batch"}}]
                 # ).show()
 
                 # Zero gradient buffers
@@ -118,6 +118,7 @@ class Trainer:
                 if "lle"   in self.losses: raw["lle"]   = self.lle_loss(output, batch)
                 if "kld"   in self.losses: raw["kld"]   = self.kld_loss(output.log_softmax(dim=1), batch.softmax(dim=1))
                 if "vae"   in self.losses: raw["vae"]   = self.vae_loss(mu, logvar)
+                if "tri"   in self.losses: raw["tri"]   = self.tri_loss(output, labels)
 
                 # Apply weights
                 weighted = {

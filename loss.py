@@ -2,6 +2,57 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+class TripletMarginLoss(nn.Module):
+    """
+    Computes triplet margin loss between an anchor, positive, and negative example.
+
+    This module wraps `torch.nn.TripletMarginLoss`, but automatically constructs
+    triplets by treating the first example in a batch as the anchor, and sampling
+    positives and negatives from the remainder of the batch.
+
+    Args:
+        margin (float, optional): Margin value for the triplet loss.
+        p (float, optional): The norm degree for pairwise distance.
+    """
+    def __init__(self, margin=1.0, p=2):
+        super().__init__()
+        self.tri_loss = nn.TripletMarginLoss(margin=margin, p=p)
+    
+    def forward(self, X, labels):
+        """
+        Constructs triplets from the batch and computes loss.
+
+        The first element in X (and labels) is used as the anchor. Other elements
+        in the batch whose labels match the anchor form the positive set; those
+        with different labels form the negative set. Triplets are formed by pairing
+        the anchor with up to M positive-negatives pairs, where
+        M = min(num_pos, num_neg). If there are fewer positives or negatives than
+        the other, only M triplets are used.
+
+        Args:
+            X (torch.Tensor): Tensor of shape (N, D) containing N embeddings of
+                              dimensionality D. The 0-th element is the anchor.
+            labels (torch.Tensor): Long tensor of shape (N,) containing integer
+                                   class labels for each embedding.
+
+        Returns:
+            torch.Tensor: Scalar tensor containing the average triplet margin loss
+                          over the formed triplets.
+        """
+        # indices of positive and negative samples
+        pos_idx = (labels == labels[0]).nonzero(as_tuple=False).flatten()
+        neg_idx = (labels != labels[0]).nonzero(as_tuple=False).flatten()
+        # remove the anchor index from positives
+        pos_idx = pos_idx[pos_idx != 0]
+        # how many triplets we can form
+        M = min(pos_idx.size(0), neg_idx.size(0))
+        # anchor: repeat the first sample M times
+        anc = X[0].unsqueeze(0).repeat(M, 1)
+        # take the first M positives and negatives
+        pos = X[pos_idx[:M]]
+        neg = X[neg_idx[:M]]
+        return self.tri_loss(anc, pos, neg)
+
 class VAELoss(nn.Module):
     """Computes the Kullback–Leibler divergence term for a Variational Autoencoder.
 
