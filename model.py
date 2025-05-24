@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 
-
 class AE(nn.Module):
     """
     Autoencoder (AE) with optional hidden layer architecture.

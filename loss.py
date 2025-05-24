@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 class VAELoss(nn.Module):
     """Computes the Kullback–Leibler divergence term for a Variational Autoencoder.
 
