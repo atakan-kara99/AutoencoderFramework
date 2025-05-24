@@ -1,115 +1,175 @@
-from abc import ABC
+import torch
 import torch.nn as nn
 
-class Autoencoder(nn.Module, ABC):
-    """
-    Abstract base class for autoencoders.
 
-    Subclasses must define 'encoder' and 'decoder' modules. The forward
-    pass applies the encoder to input 'x' and then the decoder to reconstruct.
+class AE(nn.Module):
     """
-    def __init__(self) -> None:
+    Autoencoder (AE) with optional hidden layer architecture.
+
+    Args:
+        input_dim (int): Dimensionality of the input features.
+        hidden_dim (int): Size of the hidden layer. If -1, uses a single linear layer for encoding.
+        latent_dim (int): Dimensionality of the latent (bottleneck) representation.
+    """
+
+    def __init__(self, input_dim, hidden_dim, latent_dim):
         """
-        Initialize the Autoencoder base class without additional parameters.
+        Initialize the Autoencoder model.
+
+        Builds the encoder and decoder networks based on the hidden_dim parameter.
+
+        If hidden_dim is -1, a single linear transformation is used for both encoder and decoder.
+        Otherwise, a two-layer MLP with ReLU activations is constructed for both.
         """
-        super().__init__()
+        super(AE, self).__init__()
+        if hidden_dim == -1:
+            self.encoder = nn.Linear(input_dim, latent_dim)
+            self.decoder = nn.Linear(latent_dim, input_dim)
+        else:
+            self.encoder = nn.Sequential(
+                nn.Linear(input_dim, hidden_dim),
+                nn.ReLU(),
+                nn.Linear(hidden_dim, hidden_dim),
+                nn.ReLU(),
+                nn.Linear(hidden_dim, latent_dim),
+            )
+            self.decoder = nn.Sequential(
+                nn.Linear(latent_dim, hidden_dim),
+                nn.ReLU(),
+                nn.Linear(hidden_dim, hidden_dim),
+                nn.ReLU(),
+                nn.Linear(hidden_dim, input_dim),
+            )
+
+    def encode(self, x):
+        """
+        Encode the input into the latent representation.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch_size, input_dim).
+
+        Returns:
+            torch.Tensor: Latent representation of shape (batch_size, latent_dim).
+        """
+        return self.encoder(x)
+
+    def decode(self, z):
+        """
+        Decode the latent representation back to the input space.
+
+        Args:
+            z (torch.Tensor): Latent tensor of shape (batch_size, latent_dim).
+
+        Returns:
+            torch.Tensor: Reconstructed tensor of shape (batch_size, input_dim).
+        """
+        return self.decoder(z)
 
     def forward(self, x):
         """
-        Execute a full autoencoder pass: encode input to latent space
-        and then decode back to the original space.
+        Forward pass through the autoencoder.
 
-        Parameters:
-            x (Tensor): Input tensor of shape (..., input_dim).
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch_size, input_dim).
 
         Returns:
-            Tensor: Reconstructed tensor of same shape as input.
+            x_recon (torch.Tensor): Reconstructed input of shape (batch_size, input_dim).
+            h (torch.Tensor): Latent representation of shape (batch_size, latent_dim).
+            None, None: Placeholders for compatibility with VAE interface.
         """
-        # Apply encoder then decoder sequentially
-        return self.decoder(self.encoder(x))
+        h = self.encode(x)
+        x_recon = self.decode(h)
+        return x_recon, h, None, None
 
 
-''' ------------------------ Autoencoders for 3D Data ------------------------ '''
-class Ae3Dto2Dwide(Autoencoder):
-    def __init__(self):
-        super().__init__()
+class VAE(nn.Module):
+    """
+    Variational Autoencoder (VAE) with Gaussian latent space.
+
+    Args:
+        input_dim (int): Dimensionality of the input features.
+        hidden_dim (int): Size of the hidden layers in the encoder and decoder.
+        latent_dim (int): Dimensionality of the latent (bottleneck) representation.
+    """
+    def __init__(self, input_dim, hidden_dim, latent_dim):
+        """
+        Initialize the VAE model.
+
+        Constructs the encoder network to output the mean and log-variance for the latent distribution,
+        and a decoder network to reconstruct inputs from latent samples.
+        """
+        super(VAE, self).__init__()
         self.encoder = nn.Sequential(
-            nn.Linear(3, 64),
+            nn.Linear(input_dim, hidden_dim),
             nn.ReLU(),
-            nn.Linear(64, 2),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
         )
+        self.fc_mu     = nn.Linear(hidden_dim, latent_dim)
+        self.fc_logvar = nn.Linear(hidden_dim, latent_dim)
         self.decoder = nn.Sequential(
-            nn.Linear(2, 64),
+            nn.Linear(latent_dim, hidden_dim),
             nn.ReLU(),
-            nn.Linear(64, 3),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, input_dim),
         )
 
-class Ae3Dto2D(Autoencoder):
-    def __init__(self):
-        super().__init__()
-        self.encoder = nn.Sequential(
-            nn.Linear(3, 6),
-            nn.ReLU(),
-            nn.Linear(6, 2),
-        )
-        self.decoder = nn.Sequential(
-            nn.Linear(2, 6),
-            nn.ReLU(),
-            nn.Linear(6, 3),
-        )
+    def encode(self, x):
+        """
+        Encode the input into parameters of the latent Gaussian distribution.
 
-class Ae3Dto2Dlinear(Autoencoder):
-    def __init__(self):
-        super().__init__()
-        self.encoder = nn.Linear(3, 2)
-        self.decoder = nn.Linear(2, 3)
-    
-class Ae3Dto1D(Autoencoder):
-    def __init__(self):
-        super().__init__()
-        self.encoder = nn.Sequential(
-            nn.Linear(3, 2),
-            nn.ReLU(),
-            nn.Linear(2, 1),
-        )
-        self.decoder = nn.Sequential(
-            nn.Linear(1, 2),
-            nn.ReLU(),
-            nn.Linear(2, 3),
-        )
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch_size, input_dim).
 
+        Returns:
+            mu (torch.Tensor): Mean of the latent Gaussian of shape (batch_size, latent_dim).
+            logvar (torch.Tensor): Log-variance of the latent Gaussian of shape (batch_size, latent_dim).
+        """
+        h = self.encoder(x)
+        return self.fc_mu(h), self.fc_logvar(h)
 
-''' ------------------------ Autoencoders for 2D Data ------------------------ '''
-class Ae2Dto1Dwide(Autoencoder):
-    def __init__(self):
-        super().__init__()
-        self.encoder = nn.Sequential(
-            nn.Linear(2, 32),
-            nn.ReLU(),
-            nn.Linear(32, 1),
-        )
-        self.decoder = nn.Sequential(
-            nn.Linear(1, 32),
-            nn.ReLU(),
-            nn.Linear(32, 2),
-        )
+    def reparameterize(self, mu, logvar):
+        """
+        Reparameterization trick to sample from a Gaussian distribution.
 
-class Ae2Dto1D(Autoencoder):
-    def __init__(self):
-        super().__init__()
-        self.encoder = nn.Sequential(
-            nn.Linear(2, 4),
-            nn.ReLU(),
-            nn.Linear(4, 1),
-        )
-        self.decoder = nn.Sequential(
-            nn.Linear(1, 4),
-            nn.ReLU(),
-            nn.Linear(4, 2),
-        )
+        Args:
+            mu (torch.Tensor): Mean of the latent Gaussian.
+            logvar (torch.Tensor): Log-variance of the latent Gaussian.
 
-class Ae2Dto1Dlinear(Autoencoder):
-    def __init__(self):
-        super().__init__()
-        self.encoder = nn.Linear(2, 1)
-        self.decoder = nn.Linear(1, 2)
+        Returns:
+            torch.Tensor: Sampled latent vector of shape (batch_size, latent_dim).
+        """
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return mu + eps * std
+
+    def decode(self, h):
+        """
+        Decode the latent representation to reconstruct the input.
+
+        Args:
+            h (torch.Tensor): Latent tensor of shape (batch_size, latent_dim).
+
+        Returns:
+            torch.Tensor: Reconstructed tensor of shape (batch_size, input_dim).
+        """
+        return self.decoder(h)
+
+    def forward(self, x):
+        """
+        Forward pass through the VAE.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch_size, input_dim).
+
+        Returns:
+            x_recon (torch.Tensor): Reconstructed input of shape (batch_size, input_dim).
+            h (torch.Tensor): Sampled latent representation of shape (batch_size, latent_dim).
+            mu (torch.Tensor): Mean of the latent Gaussian.
+            logvar (torch.Tensor): Log-variance of the latent Gaussian.
+        """
+        mu, logvar = self.encode(x)
+        h = self.reparameterize(mu, logvar)
+        x_recon = self.decode(h)
+        return x_recon, h, mu, logvar
