@@ -15,9 +15,9 @@ from dataset import (
 trainer = Trainer(
     model=AE(3, 64, 2),
     dataset=Ds3DTorus(),
-    losses={'lap': 1.0},
-    sample_neighbors=True,
-    batch_size=16,
+    losses={'tri': 1.0},
+    sample_neighbors=False,
+    batch_size=32,
     ).train()
 
 Visualizer(
