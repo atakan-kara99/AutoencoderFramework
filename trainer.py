@@ -47,6 +47,7 @@ class Trainer:
         self.kld_loss = nn.KLDivLoss(reduction='batchmean')
         self.vae_loss = loss.VAELoss()
         self.tri_loss = loss.TripletMarginLoss()
+        self.cos_loss = loss.CosineEmbeddingLoss()
         self.lap_loss = loss.GraphLaplacianLoss(k=4, sigma=1.0)
         # Initialize optimizer
         self.optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -113,14 +114,15 @@ class Trainer:
 
                 # Compute only selected raw losses
                 raw = {}   
-                if "mse"   in self.losses: raw["mse"]   = self.mse_loss(output, batch)
-                if "cos"   in self.losses: raw["cos"]   = (1.0 - self.cos_sim(output, batch)).mean()
-                if "trust" in self.losses: raw["trust"] = self.trust_loss(output, batch)
-                if "lle"   in self.losses: raw["lle"]   = self.lle_loss(output, batch)
-                if "kld"   in self.losses: raw["kld"]   = self.kld_loss(output.log_softmax(dim=1), batch.softmax(dim=1))
-                if "vae"   in self.losses: raw["vae"]   = self.vae_loss(mu, logvar)
-                if "tri"   in self.losses: raw["tri"]   = self.tri_loss(output, labels)
-                if "lap"   in self.losses: raw["lap"]   = self.lap_loss(output, batch)
+                if "mse" in self.losses: raw["mse"] = self.mse_loss(output, batch)
+                if "csi" in self.losses: raw["cos"] = (1.0 - self.cos_sim(output, batch)).mean()
+                if "tru" in self.losses: raw["tru"] = self.trust_loss(output, batch)
+                if "lle" in self.losses: raw["lle"] = self.lle_loss(output, batch)
+                if "kld" in self.losses: raw["kld"] = self.kld_loss(output.log_softmax(dim=1), batch.softmax(dim=1))
+                if "vae" in self.losses: raw["vae"] = self.vae_loss(mu, logvar)
+                if "tri" in self.losses: raw["tri"] = self.tri_loss(output, labels)
+                if "clo" in self.losses: raw["clo"] = self.cos_loss(output, labels)
+                if "lap" in self.losses: raw["lap"] = self.lap_loss(output, batch)
 
                 # Apply weights
                 weighted = {
