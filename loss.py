@@ -41,12 +41,60 @@ class GraphLaplacianLoss(nn.Module):
 
         # Laplacian loss = sum_{i,j} W[i,j] * ||z_i - z_j||^2
         return (W * sqdist).sum() / (n * self.k)
+    
+class CosineEmbeddingLoss(nn.Module):
+    """
+    Computes cosine embedding loss between an anchor and positive/negative examples.
 
+    This module wraps `torch.nn.CosineEmbeddingLoss`, automatically constructing
+    pairs by treating the first example in a batch as the anchor, and sampling
+    positives and negatives from the remainder of the batch.
+
+    Args:
+        margin (float, optional): Margin value for the cosine embedding loss.
+    """
+    def __init__(self, margin=0.5):
+        super().__init__()
+        self.cos_loss = nn.CosineEmbeddingLoss(margin=margin)
+    
+    def forward(self, X, labels):
+        """
+        Constructs pairs from the batch and computes cosine embedding loss.
+
+        The first element in X (and labels) is used as the anchor. Other elements
+        in the batch whose labels match the anchor form positive pairs (y=1);
+        those with different labels form negative pairs (y=-1). All possible pairs
+        are used.
+
+        Args:
+            X (torch.Tensor): Tensor of shape (N, D) containing N embeddings of
+                              dimensionality D. The 0-th element is the anchor.
+            labels (torch.Tensor): Long tensor of shape (N,) containing integer
+                                   class labels for each embedding.
+
+        Returns:
+            torch.Tensor: Scalar tensor containing the average cosine embedding loss
+                          over the formed pairs.
+        """
+        # indices of positive and negative samples
+        pos_idx = (labels == labels[0]).nonzero(as_tuple=False).flatten()
+        neg_idx = (labels != labels[0]).nonzero(as_tuple=False).flatten()
+        # remove the anchor index from positives
+        pos_idx = pos_idx[pos_idx != 0]
+        
+        anc_pos_pairs = torch.stack([X[0].repeat(len(pos_idx), 1), X[pos_idx]], dim=1)
+        anc_neg_pairs = torch.stack([X[0].repeat(len(neg_idx), 1), X[neg_idx]], dim=1)
+
+        pairs = torch.cat([anc_pos_pairs, anc_neg_pairs], dim=0)
+        targets = torch.cat([torch.ones(len(pos_idx)), -torch.ones(len(neg_idx))], dim=0).to(X.device)
+
+        return self.cos_loss(pairs[:,0,:], pairs[:,1,:], targets)
+    
 class TripletMarginLoss(nn.Module):
     """
     Computes triplet margin loss between an anchor, positive, and negative example.
 
-    This module wraps `torch.nn.TripletMarginLoss`, but automatically constructs
+    This module wraps torch.nn.TripletMarginLoss, but automatically constructs
     triplets by treating the first example in a batch as the anchor, and sampling
     positives and negatives from the remainder of the batch.
 
