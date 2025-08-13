@@ -24,8 +24,8 @@ class Trainer:
         sample_neighbors (bool): If True, samples neighbors for mini-batch training.
     """
     def __init__(self, model, dataset, learning_rate=1e-3,
-                 num_epochs=-1, patience=40, min_delta=1e-6,
-                 print_every=20, batch_size=16, losses={'mse': 1.0},
+                 num_epochs=-1, patience=40, min_delta=1e-5,
+                 print_every=20, batch_size=-1, losses={'mse': 1.0},
                  sample_neighbors=False):
         # Store dataset and model
         self.model = model
@@ -36,7 +36,10 @@ class Trainer:
         self.patience = patience
         self.min_delta = min_delta
         self.print_every = print_every
-        self.batch_size = batch_size
+        if batch_size == -1:
+            self.batch_size = dataset.data.size(0)
+        else:
+            self.batch_size = batch_size
         self.sample_neighbors = sample_neighbors
         self.losses = losses
         # Define loss function and optimizer
