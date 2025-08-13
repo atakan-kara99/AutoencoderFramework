@@ -3,42 +3,53 @@ import torch.nn as nn
 
 class AE(nn.Module):
     """
-    Autoencoder (AE) with optional hidden layer architecture.
+    Autoencoder (AE) with optional hidden layers architecture.
 
     Args:
-        input_dim (int): Dimensionality of the input features.
-        hidden_dim (int): Size of the hidden layer. If -1, uses a single linear layer for encoding.
-        latent_dim (int): Dimensionality of the latent (bottleneck) representation.
+        input_dim   (int): Dimensionality of the input features.
+        hidden_dims (list[int]): List of hidden layer sizes. If empty, uses a single linear layer for encoding.
+        latent_dim  (int): Dimensionality of the latent (bottleneck) representation.
     """
 
-    def __init__(self, input_dim, hidden_dim, latent_dim):
+    def __init__(self, input_dim, hidden_dims, latent_dim):
         """
         Initialize the Autoencoder model.
 
-        Builds the encoder and decoder networks based on the hidden_dim parameter.
+        Builds the encoder and decoder networks based on the hidden_dims parameter.
 
-        If hidden_dim is -1, a single linear transformation is used for both encoder and decoder.
-        Otherwise, a two-layer MLP with ReLU activations is constructed for both.
+        If hidden_dims is empty, a single linear transformation is used for both encoder and decoder.
+        Otherwise, a multi-layer MLP with SELU activations is constructed for all.
         """
         super(AE, self).__init__()
-        if hidden_dim == -1:
-            self.encoder = nn.Linear(input_dim, latent_dim)
-            self.decoder = nn.Linear(latent_dim, input_dim)
+        # Build Encoder
+        encoder_layers = []
+        prev_dim = input_dim
+
+        if not hidden_dims:  # No hidden layers, linear AE
+            encoder_layers.append(nn.Linear(input_dim, latent_dim))
         else:
-            self.encoder = nn.Sequential(
-                nn.Linear(input_dim, hidden_dim),
-                nn.ReLU(),
-                nn.Linear(hidden_dim, hidden_dim),
-                nn.ReLU(),
-                nn.Linear(hidden_dim, latent_dim),
-            )
-            self.decoder = nn.Sequential(
-                nn.Linear(latent_dim, hidden_dim),
-                nn.ReLU(),
-                nn.Linear(hidden_dim, hidden_dim),
-                nn.ReLU(),
-                nn.Linear(hidden_dim, input_dim),
-            )
+            for h_dim in hidden_dims:
+                encoder_layers.append(nn.Linear(prev_dim, h_dim))
+                encoder_layers.append(nn.SELU())
+                prev_dim = h_dim
+            encoder_layers.append(nn.Linear(prev_dim, latent_dim))
+
+        self.encoder = nn.Sequential(*encoder_layers)
+
+        # Build Decoder (reverse hidden_dims)
+        decoder_layers = []
+        prev_dim = latent_dim
+
+        if not hidden_dims:
+            decoder_layers.append(nn.Linear(latent_dim, input_dim))
+        else:
+            for h_dim in reversed(hidden_dims):
+                decoder_layers.append(nn.Linear(prev_dim, h_dim))
+                decoder_layers.append(nn.SELU())
+                prev_dim = h_dim
+            decoder_layers.append(nn.Linear(prev_dim, input_dim))
+
+        self.decoder = nn.Sequential(*decoder_layers)
 
     def encode(self, x):
         """
