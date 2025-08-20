@@ -2,6 +2,74 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+class KLDivergenceLoss(nn.Module):
+    """
+    KL-divergence reconstruction loss for vanilla autoencoders.
+
+    Interprets each sample's features as a probability distribution over the
+    feature axis and computes KL(target || prediction) with PyTorch's KLDivLoss
+    convention (input = log-probs, target = probs).
+
+    Args:
+        dim (int): Feature axis along which distributions are formed when flatten=False.
+        eps (float): Small constant to avoid divide-by-zero.
+        temperature (float): Softmax temperature on predictions (>1 softens).
+        reduction (str): 'batchmean' (default), 'mean', or 'sum'.
+        flatten (bool): If True, flattens to (B, -1) before computing KL.
+        symmetric (bool): If True, returns 0.5*(KL(target||pred) + KL(pred||target)).
+                          (More expensive; use only if you need symmetry.)
+    """
+    def __init__(self, dim=1, eps=1e-12, temperature=1.0,
+                 reduction='batchmean', flatten=True, symmetric=False):
+        super().__init__()
+        self.dim = dim
+        self.eps = eps
+        self.temperature = temperature
+        self.reduction = reduction
+        self.flatten = flatten
+        self.symmetric = symmetric
+
+    def forward(self, output, target):
+        """
+        Args:
+            output (Tensor): Model outputs (logits or scores), shape (B, ...).
+            target (Tensor): Ground-truth features, same shape as output.
+
+        Returns:
+            Tensor: Scalar KL loss (per `reduction`).
+        """
+        if self.flatten:
+            B = output.size(0)
+            out = output.view(B, -1)
+            tgt = target.view(B, -1)
+            dim = 1
+        else:
+            out = output
+            tgt = target
+            dim = self.dim
+
+        # Target: nonnegative & normalized to a proper distribution
+        tgt = tgt.clamp(min=0)
+        tgt = tgt / tgt.sum(dim=dim, keepdim=True).clamp_min(self.eps)
+
+        # Prediction: log-probabilities via (temperatured) log_softmax
+        if self.temperature != 1.0:
+            out = out / self.temperature
+        log_p = F.log_softmax(out, dim=dim)
+
+        # KL(target || pred) under PyTorch's signature: kl_div(log_p, target)
+        kl_t_p = F.kl_div(log_p, tgt, reduction=self.reduction)
+
+        if not self.symmetric:
+            return kl_t_p
+
+        # Symmetric option: add KL(pred || target)
+        p = log_p.exp()  # predicted probs
+        log_t = (tgt + self.eps).log()  # safe log target
+        kl_p_t = F.kl_div(log_t, p, reduction=self.reduction)
+
+        return 0.5 * (kl_t_p + kl_p_t)
+
 class GraphLaplacianLoss(nn.Module):
     """
     Graph‐Laplacian regularization for autoencoders.
