@@ -1,3 +1,4 @@
+import os
 import torch
 import numpy as np
 from numpy import pi
@@ -206,48 +207,48 @@ class Dataset(ABC):
 class Ds3Dbut3Dmulti(Dataset):
     def __init__(self):
         super().__init__([
-            self.cloud(50, ( 2.00,  2.00,  2.00), 0.50),
-            self.cloud(50, ( 2.00, -2.00, -2.00), 0.50),
-            self.cloud(50, (-2.00,  2.00, -2.00), 0.50),
-            self.cloud(50, (-2.00, -2.00,  2.00), 0.50),
-            self.cloud( 3, ( 2.00,  0.00,  0.00), 0.50),
-            self.cloud( 3, ( 0.00,  2.00,  0.00), 0.50),
-            self.cloud( 3, ( 0.00, -2.00,  0.00), 0.50),
-            #self.cloud( 3, (-2.00,  0.00,  0.00), 0.50),
+            self.cloud(50, ( 2.00,  2.00,  2.00), 0.75),
+            self.cloud(50, ( 2.00, -2.00, -2.00), 0.75),
+            self.cloud(50, (-2.00,  2.00, -2.00), 0.75),
+            self.cloud(50, (-2.00, -2.00,  2.00), 0.75),
+            self.cloud( 2, ( 2.00,  0.00,  0.00), 0.40),
+            self.cloud( 2, ( 0.00,  2.00,  0.00), 0.40),
+            self.cloud( 2, ( 0.00, -2.00,  0.00), 0.40),
+            #self.cloud( 2, (-2.00,  0.00,  0.00), 0.40),
         ])
 class Ds3Dbut3Dsingle(Dataset):
     def __init__(self):
         super().__init__([
-            self.cloud(50, ( 2.00,  2.00,  2.00), 0.50),
-            self.cloud(50, ( 2.00, -2.00, -2.00), 0.50),
-            self.cloud(50, (-2.00,  2.00, -2.00), 0.50),
-            self.cloud(50, (-2.00, -2.00,  2.00), 0.50),
-            self.cloud( 5, ( 0.00,  0.00,  0.00), 0.75),
+            self.cloud(50, ( 2.00,  2.00,  2.00), 0.75),
+            self.cloud(50, ( 2.00, -2.00, -2.00), 0.75),
+            self.cloud(50, (-2.00,  2.00, -2.00), 0.75),
+            self.cloud(50, (-2.00, -2.00,  2.00), 0.75),
+            self.cloud( 4, ( 0.00,  0.00,  0.00), 0.80),
         ])
 class Ds3Dbut2Dmulti(Dataset):
     def __init__(self):
         super().__init__([
-            self.cloud(50, ( 0.00,  3.50,  0.00), 0.50),
-            self.cloud(50, ( 3.03, -1.75,  0.00), 0.50),
-            self.cloud(50, (-3.03, -1.75,  0.00), 0.50),
-            self.cloud( 3, ( 1.52,  0.88,  0.00), 0.50),
-            self.cloud( 3, (-1.52,  0.88,  0.00), 0.50),
-            #self.cloud( 3, ( 0.00, -1.75,  0.00), 0.50),
+            self.cloud(75, ( 0.00,  3.50,  0.00), 0.75),
+            self.cloud(75, ( 3.03, -1.75,  0.00), 0.75),
+            self.cloud(75, (-3.03, -1.75,  0.00), 0.75),
+            self.cloud( 2, ( 1.52,  0.88,  0.00), 0.40),
+            self.cloud( 2, (-1.52,  0.88,  0.00), 0.40),
+            #self.cloud( 2, ( 0.00, -1.75,  0.00), 0.40),
         ])
 class Ds3Dbut2Dsingle(Dataset):
     def __init__(self):
         super().__init__([
-            self.cloud(50, ( 0.00,  3.50,  0.00), 0.50),
-            self.cloud(50, ( 3.03, -1.75,  0.00), 0.50),
-            self.cloud(50, (-3.03, -1.75,  0.00), 0.50),
-            self.cloud( 5, ( 0.00,  0.00,  0.00), 0.75),
+            self.cloud(75, ( 0.00,  3.50,  0.00), 0.75),
+            self.cloud(75, ( 3.03, -1.75,  0.00), 0.75),
+            self.cloud(75, (-3.03, -1.75,  0.00), 0.75),
+            self.cloud( 3, ( 0.00,  0.00,  0.00), 0.60),
         ])
 class Ds3Dbut1Dsingle(Dataset):
     def __init__(self):
         super().__init__([
-            self.cloud(50, ( 2.00,  2.00,  2.00), 0.50),
-            self.cloud(50, (-2.00, -2.00, -2.00), 0.50),
-            self.cloud( 5, ( 0.00,  0.00,  0.00), 0.75),
+            self.cloud(50, ( 1.83,  1.83,  1.83), 0.75),
+            self.cloud(50, (-1.83, -1.83, -1.83), 0.75),
+            self.cloud( 2, ( 0.00,  0.00,  0.00), 0.40),
         ])
 
 
@@ -255,27 +256,27 @@ class Ds3Dbut1Dsingle(Dataset):
 class Ds2Dbut2Dmulti(Dataset):
     def __init__(self):
         super().__init__([
-            self.cloud(50, ( 0.00,  3.50), 0.50),
-            self.cloud(50, ( 3.03, -1.75), 0.50),
-            self.cloud(50, (-3.03, -1.75), 0.50),
-            self.cloud( 3, ( 1.52,  0.88), 0.50),
-            self.cloud( 3, (-1.52,  0.88), 0.50),
-            #self.cloud( 3, ( 0.00, -1.75), 0.50),
+            self.cloud(50, ( 0.00,  3.50), 0.66),
+            self.cloud(50, ( 3.03, -1.75), 0.66),
+            self.cloud(50, (-3.03, -1.75), 0.66),
+            self.cloud( 2, ( 1.52,  0.88), 0.40),
+            self.cloud( 2, (-1.52,  0.88), 0.40),
+            #self.cloud( 2, ( 0.00, -1.75), 0.40),
         ])
 class Ds2Dbut2Dsingle(Dataset):
     def __init__(self):
         super().__init__([
-            self.cloud(50, ( 0.00,  3.50), 0.50),
-            self.cloud(50, ( 3.03, -1.75), 0.50),
-            self.cloud(50, (-3.03, -1.75), 0.50),
-            self.cloud( 5, ( 0.00,  0.00), 0.75),
+            self.cloud(50, ( 0.00,  3.50), 0.66),
+            self.cloud(50, ( 3.03, -1.75), 0.66),
+            self.cloud(50, (-3.03, -1.75), 0.66),
+            self.cloud( 3, ( 0.00,  0.00), 0.60),
         ])
 class Ds2Dbut1Dsingle(Dataset):
     def __init__(self):
         super().__init__([
-            self.cloud(50, ( 2.00,  2.00), 0.50),
-            self.cloud(50, (-2.00, -2.00), 0.50),
-            self.cloud( 5, ( 0.00,  0.00), 0.75),
+            self.cloud(50, ( 2.475,  2.475), 0.66),
+            self.cloud(50, (-2.475, -2.475), 0.66),
+            self.cloud( 2, ( 0.000,  0.000), 0.40),
         ])
 
 
@@ -288,22 +289,20 @@ class Ds2DMoons(Dataset):
             self.moon(2, 25, 0.05, ( 0.50,  0.00), 1.0,      0, pi/2),
             self.moon(2, 25, 0.05, ( 0.50,  0.00), 1.0,   pi/2, pi/2),
             self.cloud(1, ( 0.00,  0.00), 0.01),
-            #self.cloud(1, ( 0.50,  0.50), 0.01),
         ])
 class Ds3DMoons(Dataset):
     def __init__(self):
         super().__init__([
-            self.moon(3, 100, 0.05, ( 0.50,  0.00, 0.00), 1.0,  0, pi),
-            self.moon(3, 100, 0.05, (-0.50,  0.00, 0.00), 1.0, pi, pi),
-            self.cloud(3, (-0.50, -0.50,  0.00), 0.05),
-            self.cloud(3, ( 0.50,  0.50,  0.00), 0.05),
+            self.moon(3, 150, 0.05, ( 0.50,  0.00, 0.00), 1.0,  0, pi),
+            self.moon(3, 150, 0.05, (-0.50,  0.00, 0.00), 1.0, pi, pi),
+            self.cloud(2, ( 0.00,  0.00,  0.00), 0.05),
         ])
 class DsTrue3DMoons(Dataset):
     def __init__(self):
         super().__init__([
             self.moon(3, 75, 0.1, ( 0.50,  0.00, 0.00), 1.0,  0,   pi),
             self.moon(3, 75, 0.1, (-0.50,  0.00, 0.00), 1.0, pi,   pi),
-            self.sphere3D(100, 0.05, ( 0.00,  0.00, -0.50), 2.0, 0.0, 2*np.pi, 0.0, np.pi/2),
+            self.sphere3D(150, 0.05, ( 0.00,  0.00, -0.50), 2.0, 0.0, 2*np.pi, 0.0, np.pi/2),
             self.cloud(2, (-0.50, -0.50,  0.00), 0.05),
             self.cloud(2, ( 0.50,  0.50,  0.00), 0.05),
             self.cloud(3, ( 0.00,  0.00,  0.75), 0.10),
@@ -313,20 +312,24 @@ class DsTrue3DMoons(Dataset):
 class Ds2DSwissRoll(Dataset):
     def __init__(self):
         super().__init__(
-            self.swiss_roll(50, 0.20, ( 0.00,  0.00), 2, 4, 0.0, 4*pi, 1.0)
-            )
+            self.swiss_roll(50, 0.20, ( 0.00,  0.00), 2, 4, 0.0, 4*pi, 1.0) +
+            [self.cloud(1, ( 3.0, 0.00), 0.25),
+             self.cloud(1, (-6.0, 0.00), 0.25),]
+             )
 class Ds3DSwissRoll(Dataset):
     def __init__(self):
         super().__init__(
-            self.swiss_roll(100, 0.10, ( 0.00,  0.00,  0.00), 3, 4, 0.0, 4*pi, -5.0, -5.0, 1.0)
+            self.swiss_roll(100, 0.10, ( 0.00,  0.00,  0.00), 3, 4, 0.0, 4*pi, -5.0, 10.0, 1.0) +
+            [self.cloud(2, ( 3.0, 0.00, 0.00), 0.25),
+             self.cloud(2, (-6.5, 0.00, 0.00), 0.25),]
             )
         
 ''' -------------------------------------- Torus Data -------------------------------------- '''
 class Ds3DTorus(Dataset):
     def __init__(self):
         super().__init__([
-            self.torus(250, 0.05, (-2.00,  0.00,  0.00), 5.0, 1.0, (0   , 0, 0)),
-            self.torus(250, 0.05, ( 2.00,  0.00,  0.00), 5.0, 1.0, (pi/2, 0, 0)),
+            self.torus(200, 0.05, (-2.00,  0.00,  0.00), 5.0, 1.0, (0   , 0, 0)),
+            self.torus(200, 0.05, ( 2.00,  0.00,  0.00), 5.0, 1.0, (pi/2, 0, 0)),
             self.cloud(2, ( 0.00,  0.00,  0.00), 0.25),
         ])
 
@@ -334,13 +337,70 @@ class Ds3DTorus(Dataset):
 class Ds3DSphere(Dataset):
     def __init__(self):
         super().__init__([
-            self.sphere3D(100, 0.00, ( 0.00,  0.00,  0.00), 2.0),
-            self.sphere3D(200, 0.00, ( 0.00,  0.00,  0.00), 4.0),
-            self.sphere3D(400, 0.00, ( 0.00,  0.00,  0.00), 6.0),
-            self.cloud(2, ( 3.00,  0.00,  0.00), 0.25),
-            self.cloud(2, ( 5.00,  0.00,  0.00), 0.25),
+            self.sphere3D(50, 0.00, ( 0.00,  0.00,  0.00), 2.0),
+            self.sphere3D(125, 0.00, ( 0.00,  0.00,  0.00), 4.0),
+            self.sphere3D(313, 0.00, ( 0.00,  0.00,  0.00), 6.0),
+            self.cloud(2, ( 2.50,  0.00,  0.00), 0.25),
+            self.cloud(2, ( 4.50,  0.00,  0.00), 0.25),
         ])
 
+
+''' ----------------------------------------------------------------------------------------- '''
+def save(dataset, filename):
+    """
+    Visualizes and saves a dataset to datasets/ directory.
+    If the file exists, prompts the user before overwriting.
+
+    Args:
+        dataset (Dataset): The dataset instance to save.
+        filename (str): Name of the file (without path).
+    """
+    # Ensure datasets directory exists
+    os.makedirs("datasets", exist_ok=True)
+    filepath = os.path.join("datasets", filename)
+
+    # 1. Visualize the dataset before saving
+    Visualizer(
+        layout=(1, 1),
+        plot_specs=[{"clusters": dataset.clusters, "kwargs": {"title": filename}}]
+    ).show()
+
+    # 2. If file exists, ask for overwrite
+    if os.path.exists(filepath):
+        choice = input(f"File '{filename}' already exists. Overwrite? (y/n): ").strip().lower()
+        if choice != 'y':
+            print("Save cancelled.")
+            return
+
+    # 3. Save dataset
+    torch.save({
+        "data": dataset.data,
+        "labels": dataset.labels,
+        "clusters": dataset.clusters,
+        "cluster_sizes": dataset.cluster_sizes
+    }, filepath)
+
+    print(f"Dataset saved to {filepath}")
+
+def load(filename):
+    """
+    Loads a dataset from datasets/ directory and returns it as a Dataset instance.
+    """
+    filepath = os.path.join("datasets", filename)
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"Dataset file '{filename}' not found in 'datasets/'.")
+
+    saved = torch.load(filepath, weights_only=False)
+
+    # Create an empty Dataset-like object without running __init__
+    dataset = object.__new__(Dataset)
+    dataset.data = saved["data"]
+    dataset.labels = saved["labels"]
+    dataset.clusters = saved["clusters"]
+    dataset.cluster_sizes = saved["cluster_sizes"]
+
+    print(f"Dataset '{filename}' loaded from {filepath}")
+    return dataset
 
 if __name__ == "__main__":
     # Dataset Showcase
@@ -367,10 +427,17 @@ if __name__ == "__main__":
     #         {"clusters": Ds3DSwissRoll().clusters, "kwargs": {"title": "Ds3DSwissRoll"}},
     #         ]
     # ).show()
+    # Visualizer(
+    # layout=(1, 2),
+    #     plot_specs=[
+    #         {"clusters": Ds3DTorus().clusters,  "kwargs": {"title": "Ds3DTorus"}},
+    #         {"clusters": Ds3DSphere().clusters, "kwargs": {"title": "Ds3DSphere"}},
+    #         ]
+    # ).show()
+    #save(Ds3DSphere(), "Ds3DSphere.pt")
     Visualizer(
-    layout=(1, 2),
+    layout=(1, 1),
         plot_specs=[
-            {"clusters": Ds3DTorus().clusters,  "kwargs": {"title": "Ds3DTorus"}},
-            {"clusters": Ds3DSphere().clusters, "kwargs": {"title": "Ds3DSphere"}},
+            {"clusters": load("Ds3DSphere.pt").clusters,  "kwargs": {"title": "3DSphere"}},
             ]
     ).show()
