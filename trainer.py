@@ -20,7 +20,7 @@ class Trainer:
         print_every (int): Interval (in epochs) at which to print training loss.
         batch_size (int): Number of samples per mini-batch.
         losses (Dict[str, float], optional): Mapping from loss-names to their weights.
-            Keys must be a subset of ['mse', 'cos', 'trust', 'lle', 'kld'].
+            Keys must be a subset of ['mse', 'csi', 'trust', 'lle', 'kld'].
         sample_neighbors (bool): If True, samples neighbors for mini-batch training.
     """
     def __init__(self, model, dataset, learning_rate=1e-3,
@@ -45,9 +45,9 @@ class Trainer:
         # Define loss function and optimizer
         self.mse_loss = nn.MSELoss()
         self.cos_sim = nn.CosineSimilarity()
-        self.trust_loss = loss.TrustworthinessLoss(k=4, tau_r=0.1, tau_s=0.1)
+        self.trust_loss = loss.TrustworthinessLoss(k=4, tau_r=0.5, tau_s=0.5)
         self.lle_loss = loss.LLELoss(k=4)
-        self.kld_loss = nn.KLDivLoss(reduction='batchmean')
+        self.kld_loss = loss.KLDivergenceLoss(flatten=True, reduction='batchmean')
         self.vae_loss = loss.VAELoss()
         self.tri_loss = loss.TripletMarginLoss()
         self.cos_loss = loss.CosineEmbeddingLoss()
@@ -118,10 +118,10 @@ class Trainer:
                 # Compute only selected raw losses
                 raw = {}   
                 if "mse" in self.losses: raw["mse"] = self.mse_loss(output, batch)
-                if "csi" in self.losses: raw["cos"] = (1.0 - self.cos_sim(output, batch)).mean()
+                if "csi" in self.losses: raw["csi"] = (1.0 - self.cos_sim(output, batch)).mean()
                 if "tru" in self.losses: raw["tru"] = self.trust_loss(output, batch)
                 if "lle" in self.losses: raw["lle"] = self.lle_loss(output, batch)
-                if "kld" in self.losses: raw["kld"] = self.kld_loss(output.log_softmax(dim=1), batch.softmax(dim=1))
+                if "kld" in self.losses: raw["kld"] = self.kld_loss(output, batch)
                 if "vae" in self.losses: raw["vae"] = self.vae_loss(mu, logvar)
                 if "tri" in self.losses: raw["tri"] = self.tri_loss(output, labels)
                 if "clo" in self.losses: raw["clo"] = self.cos_loss(output, labels)
@@ -151,11 +151,11 @@ class Trainer:
 
             # Print average loss at specified intervals
             if epoch % self.print_every == 0:
-                losses_str = "   ".join(f"{name.upper():>4}={avg[name]:.6f}"
+                losses_str = "   ".join(f"{name.upper():>4}={avg[name]:.4f}"
                                        for name in self.losses)
                 total_epochs = '∞' if use_early_stopping else self.num_epochs
                 print(f"EPOCH [{epoch}/{total_epochs}]   "
-                      f"TOTAL={avg['total']:.6f}   {losses_str}")
+                      f"TOTAL={avg['total']:.4f}   {losses_str}")
 
             # Early stopping check
             if use_early_stopping:
