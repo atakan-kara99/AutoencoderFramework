@@ -5,6 +5,8 @@
 This repository provides a flexible experimental environment to investigate how different loss functions influence **intermediate (in-between) sample preservation**, **manifold structure**, and **continuity in latent space** for Autoencoders (AE) and Variational Autoencoders (VAE).
 It includes synthetic datasets, a modular training engine, and visualization utilities designed to analyze how well models reconstruct transitions between data clusters and preserve geometric relationships.
 
+**NOTE: THIS CODE IS RELATED TO MY [MASTER THESIS](https://github.com/atakan-kara99/MasterThesis).**
+
 ---
 
 ## ✨ Key Ideas
